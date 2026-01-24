@@ -3,12 +3,12 @@ from typing import Callable
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
 
-from src.components.screen import MainScreen
+from src.components.screen import Screen
 from src.errors import ValidationError
 
 
 class Application:
-    def __init__(self, token: str, main_screen_factory: Callable[[], MainScreen]):
+    def __init__(self, token: str, main_screen_factory: Callable[[], Screen]):
         self._main_screen_factory = main_screen_factory
         self._app = ApplicationBuilder().token(token).build()
         self._app.add_handler(CommandHandler('start', self.start_handler))

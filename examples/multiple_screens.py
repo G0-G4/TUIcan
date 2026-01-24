@@ -8,10 +8,10 @@ from telegram.ext import ContextTypes
 from src.application import Application
 from src.components.button import Button, ScreenLinkButton
 from src.components.checkbox import CheckBox
-from src.components.screen import MainScreen, Screen
+from src.components.screen import Screen
 
 
-class ScreenGroup(MainScreen):
+class ScreenGroup(Screen):
 
     def __init__(self):
         super().__init__([])
@@ -43,7 +43,7 @@ class ScreenGroup(MainScreen):
         return await self._screen_stack[-1].display(update, context)
 
 
-class FirstScreen(MainScreen):
+class FirstScreen(Screen):
     def __init__(self, screen_group: ScreenGroup):
         self.check_box = CheckBox("1", callback_data="1", on_change=self.update_message)
         self.button = ScreenLinkButton("next" , callback_data="new_screen", on_change=self.new_screen_pressed)

@@ -9,11 +9,11 @@ from src.application import Application
 from src.components.button import Button
 from src.components.checkbox import CheckBox, ExclusiveCheckBoxGroup
 from src.components.input import Input
-from src.components.screen import MainScreen
+from src.components.screen import Screen
 from src.validation import positive_int
 
 
-class ComponentsScreen(MainScreen):
+class ComponentsScreen(Screen):
     def __init__(self):
         group = ExclusiveCheckBoxGroup()
         self.check_box_1 = CheckBox("1", callback_data="1", on_change=self.update_message, group=group)

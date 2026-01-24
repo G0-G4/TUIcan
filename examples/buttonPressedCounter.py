@@ -7,10 +7,10 @@ from telegram.ext import ContextTypes
 
 from src.application import Application
 from src.components.button import Button
-from src.components.screen import MainScreen
+from src.components.screen import Screen
 
 
-class ButtonScreen(MainScreen):
+class ButtonScreen(Screen):
     def __init__(self):
         self.c = 0
         self.b = Button("my button", callback_data="button", on_change=self.update_message)

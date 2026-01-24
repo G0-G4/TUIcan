@@ -73,7 +73,5 @@ class Screen(ABC):
         except BadRequest as e:
             print(f"No modifications needed: {e.message}")
 
-
-class MainScreen(Screen, ABC):
     async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await self.display(update, context)
