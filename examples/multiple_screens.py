@@ -7,6 +7,7 @@ from telegram.ext import ContextTypes
 
 from src.application import Application
 from src.components.button import Button
+from src.components.component import Component
 from src.components.screen import Screen, ScreenGroup
 
 
@@ -35,18 +36,18 @@ class NavigationScreen(Screen):
         buttons.append(self.back_btn.render(update, context))
         return [buttons]
 
-    async def go_left(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
+    async def go_left(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
         if self.left_screen:
             await self.group.go_to_screen(update, context, self.left_screen)
 
-    async def go_right(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
+    async def go_right(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
         if self.right_screen:
             await self.group.go_to_screen(update, context, self.right_screen)
 
-    async def go_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
+    async def go_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
         await self.group.go_home(update, context)
 
-    async def go_back(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
+    async def go_back(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
         await self.group.go_back(update, context)
 
 

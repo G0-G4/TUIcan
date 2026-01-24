@@ -7,16 +7,17 @@ from telegram.ext import ContextTypes
 
 from src.application import Application
 from src.components.button import Button
+from src.components.component import Component
 from src.components.screen import Screen
 
 
 class ButtonScreen(Screen):
     def __init__(self):
         self.c = 0
-        self.b = Button("my button", callback_data="button", on_change=self.update_message)
+        self.b = Button(text="my button", on_change=self.update_message)
         super().__init__([self.b], message="no presses")
 
-    def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
+    def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
         self.c += 1
         self.message = "pressed " + str(self.c)
 

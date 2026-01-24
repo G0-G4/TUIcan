@@ -5,11 +5,14 @@ from src.components.component import CallBack, Component
 
 
 class Button(Component):
-    def __init__(self, text: str = "", callback_data: str | None = None, component_id: str = None,
-                 on_change: CallBack | None = None):
-        super().__init__(component_id, on_change)
+    def __init__(
+            self,
+            text: str = "",
+            component_id: str = None,
+            callback_data: str | None = None,
+            on_change: CallBack | None = None):
+        super().__init__(component_id, callback_data, on_change)
         self._text = text
-        self._callback_data = callback_data
 
     async def click(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
         if self.on_change:
@@ -17,7 +20,7 @@ class Button(Component):
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
                               callback_data: str | None) -> bool:
-        if callback_data != self._callback_data:
+        if callback_data != self.callback_data:
             return False
         await self.click(update, context, callback_data)
         return True
@@ -25,7 +28,7 @@ class Button(Component):
     def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
         return InlineKeyboardButton(
             self._text,
-            callback_data=self._callback_data
+            callback_data=self.callback_data
         )
 
     @property

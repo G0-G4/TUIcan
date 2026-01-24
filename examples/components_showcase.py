@@ -8,6 +8,7 @@ from telegram.ext import ContextTypes
 from src.application import Application
 from src.components.button import Button
 from src.components.checkbox import CheckBox, ExclusiveCheckBoxGroup
+from src.components.component import Component
 from src.components.input import Input
 from src.components.screen import Screen
 from src.validation import positive_int
@@ -16,16 +17,18 @@ from src.validation import positive_int
 class ComponentsScreen(Screen):
     def __init__(self):
         group = ExclusiveCheckBoxGroup()
-        self.check_box_1 = CheckBox("1", callback_data="1", on_change=self.update_message, group=group)
-        self.check_box_2 = CheckBox("2", callback_data="2", on_change=self.update_message, group=group)
-        self.button = Button("3", callback_data="3", on_change=self.update_message)
-        self.input = Input[int](text="возраст: ", value=123, on_change=self.update_message, callback_data="input",
-                                validation_function=positive_int)
+        self.check_box_1 = CheckBox(text="1", on_change=self.update_message, group=group)
+        self.check_box_2 = CheckBox(text="2", on_change=self.update_message, group=group)
+        self.button = Button(text="3", on_change=self.update_message)
+        self.input = Input[int](text="возраст: ", value=123, on_change=self.update_message, validation_function=positive_int)
         super().__init__([self.check_box_1, self.check_box_2, self.button, self.input], message="show case")
 
-    def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
-        self.message = "pressed " + callback_data
-        print("pressed " + callback_data)
+    def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
+        text = ""
+        if isinstance(component, CheckBox) or isinstance(component, Button) or isinstance(component, Input):
+            text = component.text
+            self.message = "pressed " + text
+        print("pressed " + text)
 
     def get_layout(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> Sequence[
         Sequence[InlineKeyboardButton]]:

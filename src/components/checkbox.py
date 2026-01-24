@@ -5,13 +5,17 @@ from src.components.component import CallBack, Component
 
 
 class CheckBox(Component):
-    def __init__(self, text: str = "", selected: bool = False, callback_data: str | None = None,
-                 component_id: str = None,
-                 on_change: CallBack | None = None, group: "ExclusiveCheckBoxGroup | None" = None):
-        super().__init__(component_id, on_change)
+    def __init__(
+            self,
+            text: str = "",
+            selected: bool = False,
+            component_id: str = None,
+            callback_data: str | None = None,
+            on_change: CallBack | None = None,
+            group: "ExclusiveCheckBoxGroup | None" = None):
+        super().__init__(component_id, callback_data, on_change)
         self._text = text
         self._selected = selected
-        self._callback_data = callback_data
         self._group = group
         if self._group:
             self._group.add(self)
@@ -34,7 +38,7 @@ class CheckBox(Component):
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
                               callback_data: str | None) -> bool:
-        if callback_data != self._callback_data:
+        if callback_data != self.callback_data:
             return False
         await self.toggle(update, context, callback_data)
         return True
@@ -47,7 +51,7 @@ class CheckBox(Component):
     def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
         return InlineKeyboardButton(
             f"{'✓ ' if self.selected else ''}{self.text}",
-            callback_data=self._callback_data
+            callback_data=self.callback_data
         )
 
     @property
