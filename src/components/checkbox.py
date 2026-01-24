@@ -32,7 +32,8 @@ class CheckBox(Component):
         self._selected = not self._selected
         await self.call_on_change(update, context, callback_data)
 
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str) -> bool:
+    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
+                              callback_data: str | None) -> bool:
         if callback_data != self._callback_data:
             return False
         await self.toggle(update, context, callback_data)

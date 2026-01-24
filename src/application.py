@@ -1,9 +1,10 @@
 from typing import Callable
 
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
 
 from src.components.screen import MainScreen
+from src.errors import ValidationError
 
 
 class Application:
@@ -12,7 +13,9 @@ class Application:
         self._app = ApplicationBuilder().token(token).build()
         self._app.add_handler(CommandHandler('start', self.start_handler))
         self._app.add_handler(CallbackQueryHandler(self.dispatcher, pattern=".*"))
+        self._app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.message_dispatcher))
         self._user_screen = dict()
+        self._user_last_update = dict()
 
     def run(self):
         self._app.run_polling(allowed_updates=Update.ALL_TYPES)
@@ -24,6 +27,16 @@ class Application:
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         screen = self.get_or_create_screen(update)
         await screen.dispatcher(update, context)
+
+    async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        screen = self.get_or_create_screen(update)
+        chat_id = update.effective_chat.id
+        try:
+            if await screen.message_dispatcher(update, context):
+                message_id_to_delete = update.message.id
+                await context.bot.delete_message(chat_id=chat_id, message_id=message_id_to_delete)
+        except ValidationError as e:
+            await context.bot.send_message(chat_id=chat_id, text=str(e))
 
     def get_user_id(self, update: Update):
         if update.message is not None:

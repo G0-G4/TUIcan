@@ -1,5 +1,3 @@
-from typing import Any, Callable
-
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
@@ -17,7 +15,8 @@ class Button(Component):
         if self.on_change:
             await self.call_on_change(update, context, callback_data)
 
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str) -> bool:
+    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
+                              callback_data: str | None) -> bool:
         if callback_data != self._callback_data:
             return False
         await self.click(update, context, callback_data)
