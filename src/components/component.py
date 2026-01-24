@@ -5,20 +5,21 @@ from typing import Any, Callable
 from telegram import Update
 from telegram.ext import ContextTypes
 
+CallBack = Callable[[Update, ContextTypes.DEFAULT_TYPE, str], None]
 
 class Component(ABC):
     def __init__(self, component_id: str = None,
-                 on_change: Callable[[Any, Update, ContextTypes.DEFAULT_TYPE], None] | None = None):
+                 on_change: CallBack | None = None):
         self.component_id = component_id or str(id(self))
         self.on_change = on_change
 
-    async def call_on_change(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def call_on_change(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
         if not self.on_change:
             return
         if asyncio.iscoroutinefunction(self.on_change):
-            await self.on_change(self, update, context)
+            await self.on_change(update, context, callback_data)
         else:
-            self.on_change(self, update, context)
+            self.on_change(update, context, callback_data)
 
     @abstractmethod
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str) -> bool:
