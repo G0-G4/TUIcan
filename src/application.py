@@ -26,7 +26,8 @@ class Application:
 
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         screen = self.get_or_create_screen(update)
-        await screen.dispatcher(update, context)
+        if await screen.dispatcher(update, context):
+            await screen.display(update, context)
 
     async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         screen = self.get_or_create_screen(update)
@@ -34,6 +35,7 @@ class Application:
         try:
             if await screen.message_dispatcher(update, context):
                 message_id_to_delete = update.message.id
+                await screen.display(update, context)
                 await context.bot.delete_message(chat_id=chat_id, message_id=message_id_to_delete)
         except ValidationError as e:
             await context.bot.send_message(chat_id=chat_id, text=str(e))

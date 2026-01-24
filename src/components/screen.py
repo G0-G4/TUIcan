@@ -36,7 +36,6 @@ class Screen(ABC):
         if query is not None:
             for component in self._components:
                 if await component.handle_callback(update, context, query.data):
-                    await self._send_or_update_message(update, self._message, self.get_layout(update, context))
                     return True
         return False
 
@@ -47,7 +46,6 @@ class Screen(ABC):
             for component in self._components:
                 if isinstance(component, MessageHandlingComponent):
                     if await component.handle_message(update, context):
-                        await self._send_or_update_message(update, self._message, self.get_layout(update, context))
                         return True
         return False
 

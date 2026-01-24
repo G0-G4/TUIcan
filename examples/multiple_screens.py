@@ -6,7 +6,7 @@ from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
 from src.application import Application
-from src.components.button import Button, ScreenLinkButton
+from src.components.button import Button
 from src.components.checkbox import CheckBox
 from src.components.screen import Screen
 
@@ -20,15 +20,12 @@ class ScreenGroup(Screen):
 
     async def go_to_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, new_screen: Screen):
         self._screen_stack.append(new_screen)
-        await self.display(update, context)
 
     async def go_back(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self._screen_stack.pop()
-        await self.display(update, context)
 
     async def go_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self._screen_stack = self._screen_stack[:1]
-        await self.display(update, context)
 
     def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
         return self._screen_stack[-1].get_layout(update, context)
@@ -42,11 +39,22 @@ class ScreenGroup(Screen):
     async def display(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await self._screen_stack[-1].display(update, context)
 
+    async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        return await self._screen_stack[-1].start_handler(update, context)
+
+    @property
+    def message(self) -> str:
+        return self._screen_stack[-1].message
+
+    @message.setter
+    def message(self, message):
+        self._screen_stack[-1].message = message
+
 
 class FirstScreen(Screen):
     def __init__(self, screen_group: ScreenGroup):
         self.check_box = CheckBox("1", callback_data="1", on_change=self.update_message)
-        self.button = ScreenLinkButton("next" , callback_data="new_screen", on_change=self.new_screen_pressed)
+        self.button = Button("next" , callback_data="new_screen", on_change=self.new_screen_pressed)
         self.screen_group = screen_group
         self.second_screen = None
         super().__init__([self.check_box, self.button], message="first screen")
@@ -74,8 +82,8 @@ class SecondScreen(Screen):
     def __init__(self, screen_group: ScreenGroup):
         self.screen_group = screen_group
         self.check_box = CheckBox("2", callback_data="2", on_change=self.update_message)
-        self.button = ScreenLinkButton("back", callback_data="back", on_change=self.back)
-        self.next = ScreenLinkButton("next", callback_data="new_screen", on_change=self.new_screen_pressed)
+        self.button = Button("back", callback_data="back", on_change=self.back)
+        self.next = Button("next", callback_data="new_screen", on_change=self.new_screen_pressed)
         self.third_screen = None
         super().__init__([self.check_box, self.button, self.next], message="second screen")
 
@@ -104,8 +112,8 @@ class ThirdScreen(Screen):
     def __init__(self, screen_group: ScreenGroup):
         self.screen_group = screen_group
         self.check_box = CheckBox("2", callback_data="2", on_change=self.update_message)
-        self.button = ScreenLinkButton("back", callback_data="back", on_change=self.back)
-        self.home = ScreenLinkButton("home", callback_data="home", on_change=self.home)
+        self.button = Button("back", callback_data="back", on_change=self.back)
+        self.home = Button("home", callback_data="home", on_change=self.home)
         super().__init__([self.check_box, self.button, self.home], message="third screen")
 
     def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
