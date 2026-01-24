@@ -1,11 +1,12 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Any, Callable, Coroutine
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
-CallBack = Callable[[Update, ContextTypes.DEFAULT_TYPE, str], None]
+CallBack = Callable[[Update, ContextTypes.DEFAULT_TYPE, str], None] | Callable[
+    [Update, ContextTypes.DEFAULT_TYPE, str], Coroutine[Any, Any, None]]
 
 
 class Component(ABC):

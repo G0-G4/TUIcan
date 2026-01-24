@@ -35,9 +35,6 @@ class ComponentsScreen(MainScreen):
             [self.input.render(update, context)]
         ]
 
-    async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await self.display(update, context)
-
 
 load_dotenv()
 token = os.getenv("token")

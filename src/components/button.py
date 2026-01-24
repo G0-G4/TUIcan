@@ -35,3 +35,11 @@ class Button(Component):
     @text.setter
     def text(self, text):
         self._text = text
+
+class ScreenLinkButton(Button):
+    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
+                              callback_data: str | None) -> bool:
+        if callback_data != self._callback_data:
+            return False
+        await self.click(update, context, callback_data)
+        return False
