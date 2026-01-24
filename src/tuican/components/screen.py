@@ -5,7 +5,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
-from src.components.component import Component, MessageHandlingComponent
+from src.tuican.components.component import Component, MessageHandlingComponent
 
 
 class Screen(ABC):

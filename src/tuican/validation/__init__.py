@@ -1,4 +1,4 @@
-from src.errors import ValidationError
+from src.tuican.errors import ValidationError
 
 
 def positive_int(number: str) -> int:

@@ -3,8 +3,8 @@ from typing import Callable
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
 
-from src.components.screen import Screen
-from src.errors import ValidationError
+from src.tuican.components.screen import Screen
+from src.tuican.errors import ValidationError
 
 
 class Application:

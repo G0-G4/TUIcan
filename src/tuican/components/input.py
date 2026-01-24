@@ -3,7 +3,7 @@ from collections.abc import Callable
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
-from src.components.component import CallBack, Component, MessageHandlingComponent
+from src.tuican.components.component import CallBack, MessageHandlingComponent
 
 
 class Input[T](MessageHandlingComponent):

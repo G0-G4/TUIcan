@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
-from src.application import Application
-from src.components.button import Button
-from src.components.component import Component
-from src.components.screen import Screen, ScreenGroup
+from src.tuican.application import Application
+from src.tuican.components.button import Button
+from src.tuican.components.component import Component
+from src.tuican.components.screen import Screen, ScreenGroup
 
 
 class NavigationScreen(Screen):

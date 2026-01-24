@@ -5,13 +5,13 @@ from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
-from src.application import Application
-from src.components.button import Button
-from src.components.checkbox import CheckBox, ExclusiveCheckBoxGroup
-from src.components.component import Component
-from src.components.input import Input
-from src.components.screen import Screen
-from src.validation import positive_int
+from src.tuican.application import Application
+from src.tuican.components.button import Button
+from src.tuican.components.checkbox import CheckBox, ExclusiveCheckBoxGroup
+from src.tuican.components.component import Component
+from src.tuican.components.input import Input
+from src.tuican.components.screen import Screen
+from src.tuican.validation import positive_int
 
 
 class ComponentsScreen(Screen):
