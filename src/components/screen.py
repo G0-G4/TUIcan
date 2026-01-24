@@ -73,3 +73,41 @@ class Screen(ABC):
 
     async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await self.display(update, context)
+
+
+class ScreenGroup(Screen):
+
+    def __init__(self, home_screen: Screen):
+        super().__init__([])
+        self._screen_stack: list[Screen] = [home_screen]
+
+    async def go_to_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, new_screen: Screen):
+        self._screen_stack.append(new_screen)
+
+    async def go_back(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if len(self._screen_stack) <= 1:
+            raise RuntimeError("can't go back")
+        self._screen_stack.pop()
+
+    async def go_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        self._screen_stack = self._screen_stack[:1]
+
+    def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
+        return self._screen_stack[-1].get_layout(update, context)
+
+    async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        return await self._screen_stack[-1].dispatcher(update, context)
+
+    async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        return await self._screen_stack[-1].message_dispatcher(update, context)
+
+    async def display(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        return await self._screen_stack[-1].display(update, context)
+
+    @property
+    def message(self) -> str:
+        return self._screen_stack[-1].message
+
+    @message.setter
+    def message(self, message):
+        self._screen_stack[-1].message = message

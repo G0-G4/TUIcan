@@ -23,9 +23,6 @@ class ButtonScreen(Screen):
     def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
         return [[self.b.render(update, context)]]
 
-    async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await self.display(update, context)
-
 
 load_dotenv()
 token = os.getenv("token")
