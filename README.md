@@ -1,8 +1,11 @@
-# TUIcan - Telegram UI Components
+# TUIcan - Toolkit for User Intuitive Chat Application Navigation
 
-![](./images/TUIcan.png)
+**Under development, possible breaking changes!**
+
+<img src="./images/TUIcan.png" width="256">
 
 A Python library for building interactive Telegram bot interfaces with reusable UI components.
+
 
 ## Features
 
@@ -11,17 +14,10 @@ A Python library for building interactive Telegram bot interfaces with reusable 
 - ♻️ Stateful components with change callbacks
 - 📱 Message and callback query handling built-in
 
-## Installation
+## Adding to project
 
 ```bash
-pip install TUIcan
-```
-
-Or for development:
-```bash
-git clone https://github.com/yourusername/TUIcan.git
-cd TUIcan
-pip install -e .
+uv add "tuican @ git+https://github.com/G0-G4/TUIcan.git"
 ```
 
 ## Quick Start
@@ -33,21 +29,27 @@ echo "token=YOUR_BOT_TOKEN" > .env
 
 2. Create a simple button screen:
 ```python
+import os
+
+from dotenv import load_dotenv
+
 from src.tuican.application import Application
 from src.tuican.components import Button, Screen
 
 class MyScreen(Screen):
     def __init__(self):
         self.button = Button("Click me", on_change=self.handle_click)
-        super().__init__([self.button], message="Welcome!")
+        super().__init__([self.button], message="click the button")
 
     def handle_click(self, update, context, callback_data, component):
-        self.message = "Button clicked!"
+        self.message = "Hello world!"
 
     def get_layout(self, update, context):
         return [[self.button.render(update, context)]]
 
-app = Application("YOUR_BOT_TOKEN", MyScreen)
+load_dotenv()
+token = os.getenv("token")
+app = Application(token, MyScreen)
 app.run()
 ```
 
@@ -99,7 +101,7 @@ See the `examples/` directory for:
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.13+
 - python-telegram-bot
 - python-dotenv
 

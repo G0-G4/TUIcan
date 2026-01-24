@@ -1,0 +1,1 @@
+from src.tuican.application import  Application

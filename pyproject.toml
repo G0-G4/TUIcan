@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = [
     { name="G0-G4"},
 ]
-description = "telegram ui components to build app alike bots"
+description = "A Python library for building interactive Telegram bot interfaces with reusable UI components."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

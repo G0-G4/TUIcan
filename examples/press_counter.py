@@ -5,10 +5,8 @@ from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
-from src.tuican.application import Application
-from src.tuican.components.button import Button
-from src.tuican.components.component import Component
-from src.tuican.components.screen import Screen
+from src.tuican import Application
+from src.tuican.components import Button, Component, Screen
 
 
 class ButtonScreen(Screen):
