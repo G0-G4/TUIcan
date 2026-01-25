@@ -14,10 +14,14 @@ class Component(ABC):
             self,
             component_id: str = None,
             callback_data: str = None,
-            on_change: CallBack | None = None):
+            on_change: CallBack | None = None,
+            hidden: bool = False,
+            data: Any = None):
         self._component_id = component_id or str(id(self))
         self._callback_data = callback_data or self.component_id
         self.on_change = on_change
+        self._hidden = False
+        self._data = data
 
     async def call_on_change(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
         if not self.on_change:
@@ -30,6 +34,7 @@ class Component(ABC):
     @abstractmethod
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
                               callback_data: str | None) -> bool:
+        # TODO callback_data is redundant could be taken from update.callback_query.data
         raise NotImplementedError
 
     @abstractmethod
@@ -44,6 +49,22 @@ class Component(ABC):
     @property
     def component_id(self) -> str:
         return self._component_id
+
+    @property
+    def hidden(self) -> bool:
+        return self._hidden
+
+    @hidden.setter
+    def hidden(self, hidden: bool):
+        self._hidden = hidden
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        self._data = data
 
 
 class MessageHandlingComponent(Component, ABC):

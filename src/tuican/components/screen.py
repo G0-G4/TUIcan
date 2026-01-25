@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import ClassVar, Protocol, Sequence, runtime_checkable
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.error import BadRequest
@@ -24,11 +24,12 @@ class Screen(ABC):
         self._message = message
 
     @abstractmethod
-    def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
+    async def get_layout(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> Sequence[
+        Sequence[InlineKeyboardButton]]:
         raise NotImplementedError
 
     async def display(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await self._send_or_update_message(update, self._message, self.get_layout(update, context))
+        await self._send_or_update_message(update, self._message, await self.get_layout(update, context))
 
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         # TODO: optimisation make a map of components and remove iteration
@@ -51,6 +52,9 @@ class Screen(ABC):
 
     def add_component(self, comp: Component):
         self._components.append(comp)
+
+    def add_components(self, comps: list[Component]):
+        self._components.extend(comps)
 
     def delete_component(self, comp: Component):
         self._components.remove(comp)
@@ -80,6 +84,9 @@ class Screen(ABC):
     async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await self.display(update, context)
 
+    def clear_update(self):
+        self._update_to_display_on = None
+
 
 class ScreenGroup(Screen):
 
@@ -98,8 +105,9 @@ class ScreenGroup(Screen):
     async def go_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self._screen_stack = self._screen_stack[:1]
 
-    def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
-        return self._screen_stack[-1].get_layout(update, context)
+    async def get_layout(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> Sequence[
+        Sequence[InlineKeyboardButton]]:
+        return await self._screen_stack[-1].get_layout(update, context)
 
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         return await self._screen_stack[-1].dispatcher(update, context)
@@ -117,3 +125,9 @@ class ScreenGroup(Screen):
     @message.setter
     def message(self, message):
         self._screen_stack[-1].message = message
+
+class StartScreenProtocol(Protocol):
+
+    description: ClassVar[str]
+    def __call__(self) -> Screen:
+        ...

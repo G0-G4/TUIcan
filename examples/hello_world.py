@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
+from examples.dynamic_layout import MainScreen
 from src.tuican.application import Application
 from src.tuican.components import Button, Screen
 
@@ -13,10 +14,10 @@ class MyScreen(Screen):
     def handle_click(self, update, context, callback_data, component):
         self.message = "Hello world!"
 
-    def get_layout(self, update, context):
+    async def get_layout(self, update, context):
         return [[self.button.render(update, context)]]
 
 load_dotenv()
 token = os.getenv("token")
-app = Application(token, MyScreen)
+app = Application(token, {'start': MainScreen})
 app.run()

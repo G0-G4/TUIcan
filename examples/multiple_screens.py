@@ -24,7 +24,7 @@ class NavigationScreen(Screen):
         super().__init__([self.left_btn, self.right_btn, self.home_btn, self.back_btn],
                          message=f"Screen {name}")
 
-    def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
+    async def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
         buttons = []
         if self.left_screen:
             buttons.append(self.left_btn.render(update, context))
@@ -61,5 +61,5 @@ class AppScreens(ScreenGroup):
 
 load_dotenv()
 token = os.getenv("token")
-app = Application(token, AppScreens)
+app = Application(token, {'start': AppScreens})
 app.run()

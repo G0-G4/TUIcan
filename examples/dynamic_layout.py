@@ -22,7 +22,7 @@ class DailyScreen(Screen):
         self.group = group
         super().__init__([self.left, self.right], message="dynamic")
 
-    def get_layout(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> Sequence[Sequence[InlineKeyboardButton]]:
+    async def get_layout(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> Sequence[Sequence[InlineKeyboardButton]]:
         self.add_dynamic_components()
         return [[b.render(update, context) for b in self.buttons]] + [[self.left.render(update, context), self.right.render(update, context)]]
 
@@ -75,5 +75,5 @@ class MainScreen(ScreenGroup):
 load_dotenv()
 token = os.getenv("token")
 
-app = Application(token, MainScreen)
+app = Application(token, {'start': MainScreen})
 app.run()

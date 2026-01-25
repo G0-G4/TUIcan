@@ -61,7 +61,7 @@ class Input[T](MessageHandlingComponent):
 
     def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
         return InlineKeyboardButton(
-            f"{'Введите ' if self.active else ''}{self._text}{self._value}",
+            f"{'Введите ' if self.active else ''}{self._text}{self._value if self._value is not None else ''}",
             callback_data=self.callback_data
         )
 
@@ -86,9 +86,14 @@ class Input[T](MessageHandlingComponent):
         return self._validation_function(text)
 
     @property
-    def value(self) -> str | None:
+    def value(self) -> T | None:
         """Get the current input value"""
         return self._value
+
+    @value.setter
+    def value(self, value: T) -> T | None:
+        """Get the current input value"""
+        self._value = value
 
     @property
     def text(self) -> str | None:

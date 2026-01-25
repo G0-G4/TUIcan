@@ -68,8 +68,9 @@ class CheckBox(Component):
 
 
 class ExclusiveCheckBoxGroup:
-    def __init__(self, checkboxes: list[CheckBox] | None = None):
+    def __init__(self, checkboxes: list[CheckBox] | None = None, sticky: bool = False):
         self._checkboxes = [] if checkboxes is None else checkboxes
+        self._sticky = sticky
 
     def add(self, checkbox: CheckBox):
         self._checkboxes.append(checkbox)
@@ -78,6 +79,15 @@ class ExclusiveCheckBoxGroup:
         self._checkboxes.extend(checkboxes)
 
     def notify(self, notifier: CheckBox):
+        if self._sticky and not notifier.selected:
+            notifier._selected = True
+            return
         for checkbox in self._checkboxes:
             if checkbox != notifier:
                 checkbox._selected = False
+
+    def get_selected(self) -> CheckBox | None:
+        for checkbox in self._checkboxes:
+            if checkbox.selected:
+                return checkbox
+        return None

@@ -19,7 +19,7 @@ class ButtonScreen(Screen):
         self.c += 1
         self.message = "pressed " + str(self.c)
 
-    def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
+    async def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
         return [[self.b.render(update, context)]]
 
 
@@ -27,5 +27,5 @@ load_dotenv()
 token = os.getenv("token")
 main_screen = ButtonScreen()
 
-app = Application(token, ButtonScreen)
+app = Application(token, {'start': ButtonScreen})
 app.run()
