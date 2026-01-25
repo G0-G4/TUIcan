@@ -1,8 +1,9 @@
-from src.tuican.components.button import Button
-from src.tuican.components.checkbox import CheckBox, ExclusiveCheckBoxGroup
-from src.tuican.components.component import Component, MessageHandlingComponent
-from src.tuican.components.input import Input
-from src.tuican.components.screen import Screen, ScreenGroup
+from .button import Button
+from .checkbox import CheckBox, ExclusiveCheckBoxGroup
+from .component import Component, MessageHandlingComponent
+from .input import Input
+from .screen import Screen, ScreenGroup
+from .hline import Hline
 
 __all__ = [
     'Button',
@@ -12,5 +13,6 @@ __all__ = [
     'MessageHandlingComponent',
     'Input',
     'Screen',
-    'ScreenGroup'
+    'ScreenGroup',
+    'Hline'
 ]

@@ -2,7 +2,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Coroutine
 
-from telegram import Update
+from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
 CallBack = Callable[[Update, ContextTypes.DEFAULT_TYPE, str, "Component"], None] | Callable[
@@ -30,6 +30,10 @@ class Component(ABC):
     @abstractmethod
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
                               callback_data: str | None) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
         raise NotImplementedError
 
 

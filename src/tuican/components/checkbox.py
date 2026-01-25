@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
-from src.tuican.components.component import CallBack, Component
+from .component import CallBack, Component
 
 
 class CheckBox(Component):

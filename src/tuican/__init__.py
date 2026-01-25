@@ -1,1 +1,1 @@
-from src.tuican.application import  Application
+from .application import  Application
