@@ -49,6 +49,12 @@ class Screen(ABC):
                         return True
         return False
 
+    def add_component(self, comp: Component):
+        self._components.append(comp)
+
+    def delete_component(self, comp: Component):
+        self._components.remove(comp)
+
     async def _send_or_update_message(self, update: Update, text: str,
                                       keyboard_markup: Sequence[Sequence[InlineKeyboardButton]]):
         # send new message with markup or update existing one
