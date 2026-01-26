@@ -1,2 +1,1 @@
-from .application import  Application
-from .context import USER_ID
+from .application import  Application, get_user_id

@@ -5,10 +5,9 @@ from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
-from tuican import Application
+from tuican import Application, get_user_id
 from tuican.components import Button, CheckBox, Component, ExclusiveCheckBoxGroup, Hline, Input, Screen
 from tuican.validation import positive_int
-from tuican import USER_ID
 
 
 class ComponentsScreen(Screen):
@@ -26,7 +25,7 @@ class ComponentsScreen(Screen):
         if isinstance(component, CheckBox) or isinstance(component, Button) or isinstance(component, Input):
             text = component.text
             self.message = "pressed " + text
-        print(str(USER_ID.get()) + " pressed " + text)
+        print(str(get_user_id(update)) + " pressed " + text)
 
     async def get_layout(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> Sequence[
         Sequence[InlineKeyboardButton]]:

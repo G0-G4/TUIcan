@@ -5,7 +5,6 @@ from telegram.ext import Application as TgApplication, ApplicationBuilder, Callb
     MessageHandler, filters
 
 from .components.screen import StartScreenProtocol
-from .context import USER_ID
 from .components import Screen
 from .errors import ValidationError
 
@@ -59,7 +58,6 @@ class Application:
 
     def get_or_create_screen(self, update: Update):
         user_id = get_user_id(update)
-        USER_ID.set(user_id)
         factory = self._screen_factories[self._command]
         key = (self._command, user_id)
         screen = self._user_screens.get(key, factory())
