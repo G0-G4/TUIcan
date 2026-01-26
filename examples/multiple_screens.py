@@ -1,5 +1,5 @@
 import os
-from typing import Sequence
+from typing import ClassVar, Sequence
 
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, Update
@@ -50,6 +50,7 @@ class NavigationScreen(Screen):
 
 
 class AppScreens(ScreenGroup):
+    description: ClassVar[str] = 'main screen'
     def __init__(self):
         self.d = NavigationScreen(self, "D")
         self.c = NavigationScreen(self, "C", left_screen=self.d)

@@ -19,6 +19,12 @@ def positive_float(number: str) -> float:
         raise ValidationError("число должно быть больше 0")
     return number
 
+def any_float(number: str) -> float:
+    try:
+        return float(number)
+    except ValueError:
+        raise ValidationError("введено не число")
+
 
 def identity(string: str) -> str:
     return string

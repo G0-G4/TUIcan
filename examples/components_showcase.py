@@ -1,5 +1,5 @@
 import os
-from typing import Sequence
+from typing import ClassVar, Sequence
 
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, Update
@@ -11,7 +11,7 @@ from tuican.validation import positive_int
 
 
 class ComponentsScreen(Screen):
-    description = "component show case"
+    description: ClassVar[str] = "component show case"
     def __init__(self):
         group = ExclusiveCheckBoxGroup()
         self.check_box_1 = CheckBox(text="1", on_change=self.update_message, group=group)
@@ -36,7 +36,7 @@ class ComponentsScreen(Screen):
         ]
 
 class SecondScreen(Screen):
-    description = 'second screen'
+    description: ClassVar[str] = 'second screen'
     def __init__(self):
         self.hline = Hline()
         super().__init__([self.hline], message="second screen")

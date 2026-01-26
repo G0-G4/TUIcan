@@ -1,5 +1,5 @@
 import os
-from typing import Sequence
+from typing import ClassVar, Sequence
 
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, Update
@@ -10,6 +10,7 @@ from src.tuican.components import Button, Component, Screen
 
 
 class ButtonScreen(Screen):
+    description: ClassVar[str] = 'main screen'
     def __init__(self):
         self.c = 0
         self.b = Button(text="my button", on_change=self.update_message)

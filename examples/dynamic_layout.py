@@ -1,5 +1,5 @@
 import os
-from typing import Sequence
+from typing import ClassVar, Sequence
 
 from tuican.application import Application
 from tuican.components import Button, Component, Screen, ScreenGroup
@@ -67,6 +67,7 @@ class ButtonScreen(Screen):
         await self.group.go_back(update, context)
 
 class MainScreen(ScreenGroup):
+    description: ClassVar[str] = 'main screen'
     def __init__(self):
         self.home = DailyScreen(self)
         super().__init__(self.home)

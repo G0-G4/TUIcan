@@ -1,4 +1,5 @@
 import os
+from typing import ClassVar
 
 from dotenv import load_dotenv
 
@@ -7,6 +8,7 @@ from src.tuican.application import Application
 from src.tuican.components import Button, Screen
 
 class MyScreen(Screen):
+    description: ClassVar[str] = 'main screen'
     def __init__(self):
         self.button = Button("Click me", on_change=self.handle_click)
         super().__init__([self.button], message="click the button")

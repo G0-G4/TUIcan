@@ -118,6 +118,9 @@ class ScreenGroup(Screen):
     async def display(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await self._screen_stack[-1].display(update, context)
 
+    def clear_update(self):
+        self._screen_stack[-1]._update_to_display_on = None
+
     @property
     def message(self) -> str:
         return self._screen_stack[-1].message
