@@ -1,11 +1,12 @@
-from typing import Callable, Mapping
+from typing import Any, Callable, Coroutine
 
 from telegram import BotCommand, Update
-from telegram.ext import Application as TgApplication, ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes, \
+from telegram.ext import Application as TgApplication, ApplicationBuilder, CallbackQueryHandler, \
+    CommandHandler, ContextTypes, \
     MessageHandler, filters
 
-from .components.screen import StartScreenProtocol
 from .components import Screen
+from .components.screen import StartScreenProtocol
 from .errors import ValidationError
 
 
@@ -17,22 +18,42 @@ def get_user_id(update: Update):
     raise RuntimeError("no user id")
 
 
-
 class Application:
     def __init__(self, token: str, screens: dict[str, StartScreenProtocol]):
-        self._app = ApplicationBuilder().token(token).post_init(self.post_init).build()
-        self._app.add_handler(CommandHandler(screens.keys(), self.command_handler))
-        self._app.add_handler(CallbackQueryHandler(self.dispatcher, pattern=".*"))
-        self._app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.message_dispatcher))
+        self._app_builder = ApplicationBuilder().token(token)
+        self._app = None
         self._user_screens: dict[tuple[str, int], Screen] = dict()
         self._screen_factories = screens
         self._command = None
+        self._post_init = None
+        self._post_shutdown = None
+
+    def _build(self):
+        async def wrapper(application: TgApplication):
+            await application.bot.set_my_commands(
+                [BotCommand(c, s.description) for c, s in self._screen_factories.items()])
+            if self._post_init:
+                await self._post_init(application)
+
+        if self._post_shutdown:
+            self._app_builder.post_shutdown(self._post_shutdown)
+        self._app_builder.post_init(wrapper)
+        self._app = self._app_builder.build()
+        self._app.add_handler(CommandHandler(self._screen_factories.keys(), self.command_handler))
+        self._app.add_handler(CallbackQueryHandler(self.dispatcher, pattern=".*"))
+        self._app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.message_dispatcher))
 
     def run(self):
+        self._build()
         self._app.run_polling(allowed_updates=Update.ALL_TYPES)
 
-    async def post_init(self, application: TgApplication):
-        await application.bot.set_my_commands([BotCommand(c, s.description) for c, s in self._screen_factories.items()])
+    def post_shutdown(self, function: Callable[[TgApplication], Coroutine[Any, Any, None]]):
+        self._post_shutdown = function
+        return self
+
+    def post_init(self, function: Callable[[TgApplication], Coroutine[Any, Any, None]]):
+        self._post_init = function
+        return self
 
     async def command_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self._command = update.message.text.replace('/', '')

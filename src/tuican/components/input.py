@@ -6,6 +6,7 @@ from telegram.ext import ContextTypes
 from .component import CallBack, MessageHandlingComponent
 
 
+# TODO only one input on screen could be active
 class Input[T](MessageHandlingComponent):
 
     def __init__(self,
