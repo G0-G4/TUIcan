@@ -55,19 +55,29 @@ class Application:
         self._post_init = function
         return self
 
+    async def handle_exception(self, e: Exception, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        chat_id = update.effective_chat.id
+        print(e)
+        await context.bot.send_message(chat_id=chat_id, text=str(e))
+
     async def command_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        self.remove_current_screen(update)
         self._command = update.message.text.replace('/', '')
-        screen = self.get_or_create_screen(update)
+        screen = await self.get_or_create_screen(update, context)
         screen.clear_update()
         await screen.start_handler(update, context)
 
+
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        screen = self.get_or_create_screen(update)
-        if await screen.dispatcher(update, context):
-            await screen.display(update, context)
+        screen = await self.get_or_create_screen(update, context)
+        try:
+            if await screen.dispatcher(update, context):
+                await screen.display(update, context)
+        except Exception as e:
+            await self.handle_exception(e, update, context)
 
     async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        screen = self.get_or_create_screen(update)
+        screen = await self.get_or_create_screen(update, context)
         chat_id = update.effective_chat.id
         try:
             if await screen.message_dispatcher(update, context):
@@ -76,12 +86,26 @@ class Application:
                 await context.bot.delete_message(chat_id=chat_id, message_id=message_id_to_delete)
         except ValidationError as e:
             await context.bot.send_message(chat_id=chat_id, text=str(e))
+        except Exception as e:
+            await self.handle_exception(e, update, context)
 
-    def get_or_create_screen(self, update: Update):
+    async def get_or_create_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        not_initiated = self._command is None
+        if not_initiated:
+            print("command is empty. possible press on button after restart. start will be shown")
+            self._command = 'start'
         user_id = get_user_id(update)
         factory = self._screen_factories[self._command]
         key = (self._command, user_id)
         screen = self._user_screens.get(key, factory())
         if key not in self._user_screens:
             self._user_screens[key] = screen
+        if not_initiated:
+            await screen.display(update, context)
         return screen
+
+    def remove_current_screen(self, update: Update):
+        user_id = get_user_id(update)
+        key = (self._command, user_id)
+        if key in self._user_screens:
+            del self._user_screens[key]
