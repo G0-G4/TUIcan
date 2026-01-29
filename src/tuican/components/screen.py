@@ -29,7 +29,8 @@ class Screen(ABC):
         raise NotImplementedError
 
     async def display(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await self._send_or_update_message(update, self._message, await self.get_layout(update, context))
+        layout =  await self.get_layout(update, context)
+        await self._send_or_update_message(update, self._message, layout)
 
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         # TODO: optimisation make a map of components and remove iteration
