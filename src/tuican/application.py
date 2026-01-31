@@ -62,8 +62,9 @@ class Application:
 
     async def command_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self.remove_current_screen(update)
-        self._command = update.message.text.replace('/', '')
-        screen = await self.get_or_create_screen(update, context)
+        command_args = update.message.text.replace('/', '').split(' ')
+        self._command = command_args[0]
+        screen = await self.get_or_create_screen(update, context, command_args)
         screen.clear_update()
         await screen.start_handler(update, context)
 
@@ -89,7 +90,7 @@ class Application:
         except Exception as e:
             await self.handle_exception(e, update, context)
 
-    async def get_or_create_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def get_or_create_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, args=None):
         not_initiated = self._command is None
         if not_initiated:
             print("command is empty. possible press on button after restart. start will be shown")
@@ -100,6 +101,7 @@ class Application:
         screen = self._user_screens.get(key, factory())
         if key not in self._user_screens:
             self._user_screens[key] = screen
+            await screen.command_handler(args if args is not None else [], update, context)
         if not_initiated:
             await screen.display(update, context)
         return screen

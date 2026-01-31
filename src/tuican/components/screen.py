@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import ClassVar, Protocol, Sequence, runtime_checkable
+from typing import ClassVar, Protocol, Sequence
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.error import BadRequest
@@ -29,7 +29,7 @@ class Screen(ABC):
         raise NotImplementedError
 
     async def display(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        layout =  await self.get_layout(update, context)
+        layout = await self.get_layout(update, context)
         await self._send_or_update_message(update, self._message, layout)
 
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -88,11 +88,20 @@ class Screen(ABC):
     def clear_update(self):
         self._update_to_display_on = None
 
+    async def command_handler(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE):
+        # args is a list of [command, arg1 ...]
+        raise NotImplementedError
+
+    async def send_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
+        chat_id = update.effective_chat.id
+        await context.bot.send_message(chat_id=chat_id, text=text)
+
 
 class ScreenGroup(Screen):
 
     def __init__(self, home_screen: Screen):
         super().__init__([])
+        self._home = home_screen
         self._screen_stack: list[Screen] = [home_screen]
 
     async def go_to_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, new_screen: Screen):
@@ -130,8 +139,13 @@ class ScreenGroup(Screen):
     def message(self, message):
         self._screen_stack[-1].message = message
 
-class StartScreenProtocol(Protocol):
+    async def command_handler(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE):
+        # when receiving command home screen is opened so it should handle command
+        await self._home.command_handler(args, update, context)
 
+
+class StartScreenProtocol(Protocol):
     description: ClassVar[str]
+
     def __call__(self) -> Screen:
         ...
