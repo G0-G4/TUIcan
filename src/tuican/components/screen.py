@@ -90,7 +90,7 @@ class Screen(ABC):
 
     async def command_handler(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE):
         # args is a list of [command, arg1 ...]
-        raise NotImplementedError
+        ...
 
     async def send_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str):
         chat_id = update.effective_chat.id
