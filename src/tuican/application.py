@@ -1,3 +1,4 @@
+import os
 from typing import Any, Callable, Coroutine
 
 from telegram import BotCommand, Update
@@ -37,6 +38,10 @@ class Application:
 
         if self._post_shutdown:
             self._app_builder.post_shutdown(self._post_shutdown)
+
+        if PROXY := os.getenv("PROXY"):
+            self._app_builder.proxy(PROXY)
+
         self._app_builder.post_init(wrapper)
         self._app = self._app_builder.build()
         self._app.add_handler(CommandHandler(self._screen_factories.keys(), self.command_handler))
