@@ -16,6 +16,7 @@ class Screen(ABC):
         self._update_to_display_on = None
         self._callback_map: dict[str, Component] = {}
         self._message_components: list[MessageHandlingComponent] = []
+        self._active_message_component: MessageHandlingComponent | None = None
         for comp in components:
             self._register_component(comp)
 
@@ -46,17 +47,15 @@ class Screen(ABC):
 
     async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         message = update.message
-        if message is not None:
-            for component in self._message_components:
-                if await component.handle_message(update, context):
-                    return True
+        if message is not None and self._active_message_component is not None:
+            return await self._active_message_component.handle_message(update, context)
         return False
 
-    async def set_focus(self, focused_component: MessageHandlingComponent, update: Update,
+    async def set_focus(self, focused_component: MessageHandlingComponent | None, update: Update,
                         context: ContextTypes.DEFAULT_TYPE):
-        for comp in self._message_components:
-            if comp is not focused_component and hasattr(comp, 'active') and comp.active:
-                await comp.deactivate(update, context)
+        if self._active_message_component is not None and self._active_message_component is not focused_component:
+            await self._active_message_component.deactivate(update, context)
+        self._active_message_component = focused_component
 
     def add_component(self, comp: Component):
         self._components.append(comp)
@@ -76,11 +75,17 @@ class Screen(ABC):
         if isinstance(comp, MessageHandlingComponent):
             self._message_components.append(comp)
 
+    def clear_active_message_component(self, component: MessageHandlingComponent):
+        if self._active_message_component is component:
+            self._active_message_component = None
+
     def _unregister_component(self, comp: Component):
         mapped = self._callback_map.get(comp.callback_data)
         if mapped is comp:
             del self._callback_map[comp.callback_data]
         if isinstance(comp, MessageHandlingComponent):
+            if self._active_message_component is comp:
+                self._active_message_component = None
             self._message_components.remove(comp)
 
     async def _send_or_update_message(self, update: Update, text: str,

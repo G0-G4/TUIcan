@@ -50,6 +50,8 @@ class Input[T](MessageHandlingComponent):
         await self.call_on_change(update, context)
 
         self._active = False
+        if self.parent_screen is not None:
+            self.parent_screen.clear_active_message_component(self)
         return True
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -75,12 +77,16 @@ class Input[T](MessageHandlingComponent):
     async def deactivate(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Deactivate the input to stop accepting messages"""
         self._active = False
+        if self.parent_screen is not None:
+            self.parent_screen.clear_active_message_component(self)
         await self.call_on_change(update, context)
 
     async def toggle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self._active = not self.active
         if self._active and self.parent_screen is not None:
             await self.parent_screen.set_focus(self, update, context)
+        elif not self._active and self.parent_screen is not None:
+            self.parent_screen.clear_active_message_component(self)
         await self.call_on_change(update, context)
 
     def validate_input(self, text: str):
