@@ -43,6 +43,16 @@ class TestComponent:
         comp.data = "test_value"
         assert comp.data == "test_value"
 
+    def test_parent_screen_default_none(self):
+        comp = self._make_component()
+        assert comp.parent_screen is None
+
+    def test_parent_screen_setter(self):
+        comp = self._make_component()
+        screen = MagicMock()
+        comp.parent_screen = screen
+        assert comp.parent_screen is screen
+
     @pytest.mark.asyncio
     async def test_call_on_change_with_sync_handler(self, mock_update, mock_context):
         """call_on_change should work with synchronous handlers"""

@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from telegram import InlineKeyboardButton
 from tuican.components.input import Input
 
@@ -175,3 +175,52 @@ class TestInput:
         inp = Input[str](validation_function=lambda x: x)
         result = inp.validate_input("hello")
         assert result == "hello"
+
+    @pytest.mark.asyncio
+    async def test_activate_calls_set_focus_on_parent_screen(self, mock_update, mock_context):
+        """activate() should call parent_screen.set_focus to enforce single active input"""
+        inp = Input[str](validation_function=lambda x: x)
+        mock_screen = MagicMock()
+        mock_screen.set_focus = AsyncMock()
+        inp.parent_screen = mock_screen
+
+        await inp.activate(mock_update, mock_context)
+
+        assert inp.active is True
+        mock_screen.set_focus.assert_awaited_once_with(inp, mock_update, mock_context)
+
+    @pytest.mark.asyncio
+    async def test_toggle_on_calls_set_focus_on_parent_screen(self, mock_update, mock_context):
+        """toggle() turning on should call parent_screen.set_focus"""
+        inp = Input[str](validation_function=lambda x: x)
+        mock_screen = MagicMock()
+        mock_screen.set_focus = AsyncMock()
+        inp.parent_screen = mock_screen
+
+        await inp.toggle(mock_update, mock_context)
+
+        assert inp.active is True
+        mock_screen.set_focus.assert_awaited_once_with(inp, mock_update, mock_context)
+
+    @pytest.mark.asyncio
+    async def test_toggle_off_does_not_call_set_focus(self, mock_update, mock_context):
+        """toggle() turning off should not call parent_screen.set_focus"""
+        inp = Input[str](validation_function=lambda x: x)
+        inp._active = True
+        mock_screen = MagicMock()
+        mock_screen.set_focus = AsyncMock()
+        inp.parent_screen = mock_screen
+
+        await inp.toggle(mock_update, mock_context)
+
+        assert inp.active is False
+        mock_screen.set_focus.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_activate_without_parent_screen_does_not_raise(self, mock_update, mock_context):
+        """activate() should work when parent_screen is None (isolated component)"""
+        inp = Input[str](validation_function=lambda x: x)
+        assert inp.parent_screen is None
+
+        await inp.activate(mock_update, mock_context)
+        assert inp.active is True

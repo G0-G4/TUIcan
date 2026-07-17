@@ -52,6 +52,12 @@ class Screen(ABC):
                     return True
         return False
 
+    async def set_focus(self, focused_component: MessageHandlingComponent, update: Update,
+                        context: ContextTypes.DEFAULT_TYPE):
+        for comp in self._message_components:
+            if comp is not focused_component and hasattr(comp, 'active') and comp.active:
+                await comp.deactivate(update, context)
+
     def add_component(self, comp: Component):
         self._components.append(comp)
         self._register_component(comp)
@@ -66,6 +72,7 @@ class Screen(ABC):
 
     def _register_component(self, comp: Component):
         self._callback_map[comp.callback_data] = comp
+        comp.parent_screen = self
         if isinstance(comp, MessageHandlingComponent):
             self._message_components.append(comp)
 

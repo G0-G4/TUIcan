@@ -22,6 +22,7 @@ class Component(ABC):
         self.on_change = on_change
         self._hidden = False
         self._data = data
+        self._parent_screen = None
 
     async def call_on_change(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not self.on_change:
@@ -63,6 +64,14 @@ class Component(ABC):
     @data.setter
     def data(self, data):
         self._data = data
+
+    @property
+    def parent_screen(self):
+        return self._parent_screen
+
+    @parent_screen.setter
+    def parent_screen(self, screen):
+        self._parent_screen = screen
 
 
 class MessageHandlingComponent(Component, ABC):

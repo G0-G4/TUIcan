@@ -6,7 +6,6 @@ from telegram.ext import ContextTypes
 from .component import CallBack, MessageHandlingComponent
 
 
-# TODO only one input on screen could be active
 class Input[T](MessageHandlingComponent):
 
     def __init__(self,
@@ -69,6 +68,8 @@ class Input[T](MessageHandlingComponent):
         """Activate the input to start accepting messages"""
         self._active = True
         self._value = None
+        if self.parent_screen is not None:
+            await self.parent_screen.set_focus(self, update, context)
         await self.call_on_change(update, context)
 
     async def deactivate(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -78,6 +79,8 @@ class Input[T](MessageHandlingComponent):
 
     async def toggle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self._active = not self.active
+        if self._active and self.parent_screen is not None:
+            await self.parent_screen.set_focus(self, update, context)
         await self.call_on_change(update, context)
 
     def validate_input(self, text: str):
