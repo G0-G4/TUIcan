@@ -26,11 +26,11 @@ class DailyScreen(Screen):
         self.add_dynamic_components()
         return [[b.render(update, context) for b in self.buttons]] + [[self.left.render(update, context), self.right.render(update, context)]]
 
-    def left_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, comp: Component):
+    def left_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, comp: Component):
         self.remove_dynamic_components()
         self.cursor = (self.cursor - 1) % len(test)
 
-    def right_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, comp: Component):
+    def right_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, comp: Component):
         self.remove_dynamic_components()
         self.cursor = (self.cursor + 1) % len(test)
 
@@ -46,7 +46,7 @@ class DailyScreen(Screen):
                 self.add_component(b)
                 self.buttons.append(b)
 
-    async def open_button_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, comp: Component):
+    async def open_button_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, comp: Component):
         message = ""
         if isinstance(comp, Button):
             message = comp.text

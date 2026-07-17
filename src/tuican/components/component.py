@@ -5,8 +5,8 @@ from typing import Any, Callable, Coroutine
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
-CallBack = Callable[[Update, ContextTypes.DEFAULT_TYPE, str, "Component"], None] | Callable[
-    [Update, ContextTypes.DEFAULT_TYPE, str, "Component"], Coroutine[Any, Any, None]]
+CallBack = Callable[[Update, ContextTypes.DEFAULT_TYPE, "Component"], None] | Callable[
+    [Update, ContextTypes.DEFAULT_TYPE, "Component"], Coroutine[Any, Any, None]]
 
 
 class Component(ABC):
@@ -23,18 +23,16 @@ class Component(ABC):
         self._hidden = False
         self._data = data
 
-    async def call_on_change(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
+    async def call_on_change(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not self.on_change:
             return
         if asyncio.iscoroutinefunction(self.on_change):
-            await self.on_change(update, context, callback_data, self)
+            await self.on_change(update, context, self)
         else:
-            self.on_change(update, context, callback_data, self)
+            self.on_change(update, context, self)
 
     @abstractmethod
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
-                              callback_data: str | None) -> bool:
-        # TODO callback_data is redundant could be taken from update.callback_query.data
+    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         raise NotImplementedError
 
     @abstractmethod

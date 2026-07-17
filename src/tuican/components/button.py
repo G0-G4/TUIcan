@@ -14,15 +14,14 @@ class Button(Component):
         super().__init__(component_id, callback_data, on_change)
         self._text = text
 
-    async def click(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str):
+    async def click(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if self.on_change:
-            await self.call_on_change(update, context, callback_data)
+            await self.call_on_change(update, context)
 
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
-                              callback_data: str | None) -> bool:
-        if callback_data != self.callback_data:
+    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        if update.callback_query.data != self.callback_data:
             return False
-        await self.click(update, context, callback_data)
+        await self.click(update, context)
         return True
 
     def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:

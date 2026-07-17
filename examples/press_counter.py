@@ -16,7 +16,7 @@ class ButtonScreen(Screen):
         self.b = Button(text="my button", on_change=self.update_message)
         super().__init__([self.b], message="no presses")
 
-    def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
+    def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
         self.c += 1
         self.message = "pressed " + str(self.c)
 

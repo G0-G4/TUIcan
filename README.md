@@ -41,7 +41,7 @@ class MyScreen(Screen):
         self.button = Button("Click me", on_change=self.handle_click)
         super().__init__([self.button], message="click the button")
 
-    def handle_click(self, update, context, callback_data, component):
+    def handle_click(self, update, context, component):
         self.message = "Hello world!"
 
     def get_layout(self, update, context):

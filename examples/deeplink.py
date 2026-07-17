@@ -23,7 +23,7 @@ class MyScreen(Screen):
         self.button = Button("Click me", on_change=self.handle_click)
         super().__init__([self.button], message="click the button")
 
-    def handle_click(self, update, context, callback_data, component):
+    def handle_click(self, update, context, component):
         self.message = "Hello world!"
 
     async def command_handler(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -44,11 +44,11 @@ class DeepLinkScreen(Screen):
         self.cancel = Button("❌ cancel", on_change=self.handle_cancel)
         super().__init__([self.action, self.cancel], message="perform action?")
 
-    async def handle_action(self, update, context, callback_data, component):
+    async def handle_action(self, update, context, component):
         await self.send_message(update, context, f"action performed with argument {self.arg}")
         await self.group.go_home(update, context)
 
-    async def handle_cancel(self, update, context, callback_data, component):
+    async def handle_cancel(self, update, context, component):
         await self.group.go_home(update, context)
 
     async def get_layout(self, update, context):

@@ -48,16 +48,15 @@ class Input[T](MessageHandlingComponent):
 
         self._value = self.validate_input(message.text.strip())
 
-        await self.call_on_change(update, context, str(self._value))
+        await self.call_on_change(update, context)
 
         self._active = False
         return True
 
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
-                              callback_data: str | None) -> bool:
-        if callback_data != self.callback_data:
+    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        if update.callback_query.data != self.callback_data:
             return False
-        await self.toggle(update, context, callback_data)
+        await self.toggle(update, context)
         return True
 
     def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
@@ -66,20 +65,20 @@ class Input[T](MessageHandlingComponent):
             callback_data=self.callback_data
         )
 
-    async def activate(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str | None):
+    async def activate(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Activate the input to start accepting messages"""
         self._active = True
         self._value = None
-        await self.call_on_change(update, context, callback_data)
+        await self.call_on_change(update, context)
 
-    async def deactivate(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str | None):
+    async def deactivate(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Deactivate the input to stop accepting messages"""
         self._active = False
-        await self.call_on_change(update, context, callback_data)
+        await self.call_on_change(update, context)
 
-    async def toggle(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str | None):
+    async def toggle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self._active = not self.active
-        await self.call_on_change(update, context, callback_data)
+        await self.call_on_change(update, context)
 
     def validate_input(self, text: str):
         if not self._validation_function:

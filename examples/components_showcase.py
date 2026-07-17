@@ -20,7 +20,7 @@ class ComponentsScreen(Screen):
         self.input = Input[int](text="возраст: ", value=123, on_change=self.update_message, validation_function=positive_int)
         super().__init__([self.check_box_1, self.check_box_2, self.button, self.input], message="show case")
 
-    def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
+    def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
         text = ""
         if isinstance(component, CheckBox) or isinstance(component, Button) or isinstance(component, Input):
             text = component.text

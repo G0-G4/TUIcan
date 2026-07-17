@@ -34,18 +34,18 @@ class NavigationScreen(Screen):
         buttons.append(self.back_btn.render(update, context))
         return [buttons]
 
-    async def go_left(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
+    async def go_left(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
         if self.left_screen:
             await self.group.go_to_screen(update, context, self.left_screen)
 
-    async def go_right(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
+    async def go_right(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
         if self.right_screen:
             await self.group.go_to_screen(update, context, self.right_screen)
 
-    async def go_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
+    async def go_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
         await self.group.go_home(update, context)
 
-    async def go_back(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, component: Component):
+    async def go_back(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
         await self.group.go_back(update, context)
 
 

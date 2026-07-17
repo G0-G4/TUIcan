@@ -5,8 +5,7 @@ from .component import Component
 
 
 class Hline(Component):
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE,
-                              callback_data: str | None) -> bool:
+    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         ...
 
     def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:

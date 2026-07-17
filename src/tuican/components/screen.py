@@ -37,7 +37,7 @@ class Screen(ABC):
         query = update.callback_query
         if query is not None:
             for component in self._components:
-                if await component.handle_callback(update, context, query.data):
+                if await component.handle_callback(update, context):
                     return True
         return False
 
