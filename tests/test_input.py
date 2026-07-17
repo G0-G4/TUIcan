@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from telegram import InlineKeyboardButton
+from tuican.keyboard_button import KeyboardButton
 from tuican.components.input import Input
 
 
@@ -36,7 +36,7 @@ class TestInput:
         inp.parent_screen = mock_screen
         result = inp.render()
 
-        assert isinstance(result, InlineKeyboardButton)
+        assert isinstance(result, KeyboardButton)
         assert "Name:" in result.text
         assert "Enter:" not in result.text
 
@@ -47,7 +47,7 @@ class TestInput:
         inp.parent_screen = mock_screen
         result = inp.render()
 
-        assert isinstance(result, InlineKeyboardButton)
+        assert isinstance(result, KeyboardButton)
         assert "Enter:" in result.text
         assert "Name:" in result.text
 
@@ -57,7 +57,7 @@ class TestInput:
         inp.parent_screen = mock_screen
         result = inp.render()
 
-        assert isinstance(result, InlineKeyboardButton)
+        assert isinstance(result, KeyboardButton)
         assert "25" in result.text
 
     @pytest.mark.asyncio

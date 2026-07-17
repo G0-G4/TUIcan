@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
+from tuican.keyboard_button import KeyboardButton
 from tuican.components.component import Component, CallBack
 
 
@@ -102,7 +103,6 @@ class TestComponent:
             async def handle_callback(self):
                 return True
             def render(self):
-                from telegram import InlineKeyboardButton
-                return InlineKeyboardButton("test", callback_data=self.callback_data)
+                return KeyboardButton(text="test", callback_data=self.callback_data)
         
         return TestComp(component_id=component_id, callback_data=callback_data, on_change=on_change)

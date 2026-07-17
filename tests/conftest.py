@@ -1,7 +1,9 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from telegram import Update, CallbackQuery, InlineKeyboardButton
+from telegram import Update, CallbackQuery
 from telegram.ext import ContextTypes
+
+from tuican.keyboard_button import KeyboardButton
 
 
 @pytest.fixture
@@ -44,7 +46,7 @@ def make_component(mock_screen):
                 return query is not None and query.data == self.callback_data
             
             def render(self):
-                return InlineKeyboardButton("test", callback_data=self.callback_data)
+                return KeyboardButton(text="test", callback_data=self.callback_data)
         
         comp = MockComponent(component_id=component_id, callback_data=callback_data)
         comp.parent_screen = mock_screen

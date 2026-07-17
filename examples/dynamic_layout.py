@@ -2,10 +2,10 @@ import os
 from typing import ClassVar, Sequence
 
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton
 
 from tuican.application import Application
 from tuican.components import Button, Component, Screen, ScreenGroup
+from tuican.keyboard_button import KeyboardButton
 
 
 test = [
@@ -23,7 +23,7 @@ class DailyScreen(Screen):
         self.group = group
         super().__init__([self.left, self.right], message="dynamic")
 
-    def get_layout(self) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
+    def get_layout(self) -> Sequence[Sequence[KeyboardButton | Component]]:
         self.add_dynamic_components()
         return [[b for b in self.buttons]] + [[self.left, self.right]]
 
@@ -61,7 +61,7 @@ class ButtonScreen(Screen):
         self.group = group
         super().__init__([self.back], message=message)
 
-    def get_layout(self) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
+    def get_layout(self) -> Sequence[Sequence[KeyboardButton | Component]]:
         return [[self.back]]
 
     async def go_back(self):

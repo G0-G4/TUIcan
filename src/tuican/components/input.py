@@ -1,7 +1,6 @@
 from collections.abc import Callable
 
-from telegram import InlineKeyboardButton
-
+from ..keyboard_button import KeyboardButton
 from .component import CallBack, MessageHandlingComponent
 
 
@@ -59,9 +58,9 @@ class Input[T](MessageHandlingComponent):
         await self.toggle()
         return True
 
-    def render(self) -> InlineKeyboardButton:
-        return InlineKeyboardButton(
-            f"{self._active_prompt if self.active else ''}{self._text}{self._value if self._value is not None else ''}",
+    def render(self) -> KeyboardButton:
+        return KeyboardButton(
+            text=f"{self._active_prompt if self.active else ''}{self._text}{self._value if self._value is not None else ''}",
             callback_data=self.callback_data
         )
 

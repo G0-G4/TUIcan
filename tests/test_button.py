@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
-from telegram import InlineKeyboardButton
+from tuican.keyboard_button import KeyboardButton
 from tuican.components.button import Button
 
 
@@ -23,13 +23,13 @@ class TestButton:
         button.text = "New"
         assert button.text == "New"
 
-    def test_render_returns_inline_keyboard_button(self, mock_screen):
-        """render() should return an InlineKeyboardButton with correct callback_data"""
+    def test_render_returns_keyboard_button(self, mock_screen):
+        """render() should return a KeyboardButton with correct callback_data"""
         button = Button(text="Test", callback_data="test_cb")
         button.parent_screen = mock_screen
         result = button.render()
 
-        assert isinstance(result, InlineKeyboardButton)
+        assert isinstance(result, KeyboardButton)
         assert result.text == "Test"
         assert result.callback_data == "test_cb"
 

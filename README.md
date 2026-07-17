@@ -100,7 +100,7 @@ async def get_layout(self, update, context):
     ]
 ```
 
-You can still mix pre-rendered `InlineKeyboardButton` objects if needed.
+You can still mix pre-rendered `KeyboardButton` objects if needed.
 
 ## Middleware
 

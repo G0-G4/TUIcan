@@ -1,5 +1,5 @@
 import pytest
-from telegram import InlineKeyboardButton
+from tuican.keyboard_button import KeyboardButton
 from tuican.components.hline import Hline
 
 
@@ -10,12 +10,12 @@ class TestHline:
         assert hline.callback_data == hline.component_id
 
     def test_render(self, mock_screen):
-        """render() should return an InlineKeyboardButton with line characters"""
+        """render() should return a KeyboardButton with line characters"""
         hline = Hline()
         hline.parent_screen = mock_screen
         result = hline.render()
 
-        assert isinstance(result, InlineKeyboardButton)
+        assert isinstance(result, KeyboardButton)
         assert "─" in result.text
         assert result.callback_data == hline.callback_data
 

@@ -1,5 +1,4 @@
-from telegram import InlineKeyboardButton
-
+from ..keyboard_button import KeyboardButton
 from .component import CallBack, Component
 
 
@@ -47,9 +46,9 @@ class CheckBox(Component):
             self._group.notify(self)
         await super().call_on_change()
 
-    def render(self) -> InlineKeyboardButton:
-        return InlineKeyboardButton(
-            f"{'✓ ' if self.selected else ''}{self.text}",
+    def render(self) -> KeyboardButton:
+        return KeyboardButton(
+            text=f"{'✓ ' if self.selected else ''}{self.text}",
             callback_data=self.callback_data
         )
 

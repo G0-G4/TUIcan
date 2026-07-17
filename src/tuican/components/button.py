@@ -1,5 +1,4 @@
-from telegram import InlineKeyboardButton
-
+from ..keyboard_button import KeyboardButton
 from .component import CallBack, Component
 
 
@@ -24,9 +23,9 @@ class Button(Component):
         await self.click()
         return True
 
-    def render(self) -> InlineKeyboardButton:
-        return InlineKeyboardButton(
-            self._text,
+    def render(self) -> KeyboardButton:
+        return KeyboardButton(
+            text=self._text,
             callback_data=self.callback_data
         )
 

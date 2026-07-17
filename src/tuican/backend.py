@@ -1,7 +1,9 @@
 from typing import Protocol, Sequence, runtime_checkable
 
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from telegram.ext import ContextTypes
+
+from .keyboard_button import KeyboardButton
 
 
 @runtime_checkable
@@ -13,7 +15,7 @@ class MessageBackend(Protocol):
         update: Update,
         context: ContextTypes.DEFAULT_TYPE,
         text: str,
-        keyboard_markup: Sequence[Sequence[InlineKeyboardButton]],
+        keyboard_markup: Sequence[Sequence[KeyboardButton]],
         parse_mode: str = "HTML",
     ) -> None:
         """Send a new message or update an existing one with an inline keyboard."""
@@ -55,23 +57,31 @@ class PythonTelegramBotBackend:
         update: Update,
         context: ContextTypes.DEFAULT_TYPE,
         text: str,
-        keyboard_markup: Sequence[Sequence[InlineKeyboardButton]],
+        keyboard_markup: Sequence[Sequence[KeyboardButton]],
         parse_mode: str = "HTML",
     ) -> None:
-        from telegram import InlineKeyboardMarkup
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         from telegram.error import BadRequest
+
+        telegram_markup: list[list[InlineKeyboardButton]] = [
+            [
+                InlineKeyboardButton(text=kb.text, callback_data=kb.callback_data)
+                for kb in row
+            ]
+            for row in keyboard_markup
+        ]
 
         try:
             if update.message:
                 await update.message.reply_text(
                     text=text,
-                    reply_markup=InlineKeyboardMarkup(keyboard_markup),
+                    reply_markup=InlineKeyboardMarkup(telegram_markup),
                     parse_mode=parse_mode,
                 )
             elif update.callback_query:
                 await update.callback_query.edit_message_text(
                     text=text,
-                    reply_markup=InlineKeyboardMarkup(keyboard_markup),
+                    reply_markup=InlineKeyboardMarkup(telegram_markup),
                     parse_mode=parse_mode,
                 )
         except BadRequest as e:

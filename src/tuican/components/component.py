@@ -6,8 +6,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, Coroutine, TYPE_CHECKING
 
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from telegram.ext import ContextTypes
+
+from ..keyboard_button import KeyboardButton
 
 if TYPE_CHECKING:
     from .screen import Screen
@@ -90,7 +92,7 @@ class Component(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def render(self) -> InlineKeyboardButton:
+    def render(self) -> KeyboardButton:
         raise NotImplementedError
 
     @property

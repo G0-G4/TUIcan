@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
-from telegram import InlineKeyboardButton
 
 from tuican.components import Screen, Input
 

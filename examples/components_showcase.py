@@ -2,10 +2,10 @@ import os
 from typing import ClassVar, Sequence
 
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton
 
 from tuican import Application, get_user_id
 from tuican.components import Button, CheckBox, Component, ExclusiveCheckBoxGroup, Hline, Input, Screen
+from tuican.keyboard_button import KeyboardButton
 from tuican.validation import positive_int
 
 
@@ -26,7 +26,7 @@ class ComponentsScreen(Screen):
             self.message = "pressed " + text
         print(str(get_user_id(self.update)) + " pressed " + text)
 
-    def get_layout(self) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
+    def get_layout(self) -> Sequence[Sequence[KeyboardButton | Component]]:
         return [
             [self.check_box_1, self.check_box_2],
             [self.button],
@@ -40,7 +40,7 @@ class SecondScreen(Screen):
         self.hline = Hline()
         super().__init__([self.hline], message="second screen")
 
-    def get_layout(self) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
+    def get_layout(self) -> Sequence[Sequence[KeyboardButton | Component]]:
         return [[self.hline]]
 
 

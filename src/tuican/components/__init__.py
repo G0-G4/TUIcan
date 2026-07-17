@@ -5,6 +5,7 @@ from .input import Input
 from .registry import ComponentRegistry
 from .screen import Screen, ScreenGroup, StartScreenProtocol
 from .hline import Hline
+from ..keyboard_button import KeyboardButton
 
 __all__ = [
     'Button',
@@ -17,5 +18,6 @@ __all__ = [
     'Screen',
     'ScreenGroup',
     'Hline',
-    'StartScreenProtocol'
+    'StartScreenProtocol',
+    'KeyboardButton'
 ]

@@ -2,10 +2,11 @@ import logging
 from abc import ABC, abstractmethod
 from typing import ClassVar, Protocol, Sequence
 
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from telegram.ext import ContextTypes
 
 from ..backend import MessageBackend
+from ..keyboard_button import KeyboardButton
 from .component import Component, MessageHandlingComponent
 from .registry import ComponentRegistry
 
@@ -69,7 +70,7 @@ class Screen(ABC):
     @abstractmethod
     def get_layout(
         self,
-    ) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
+    ) -> Sequence[Sequence[KeyboardButton | Component]]:
         raise NotImplementedError
 
     async def display(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -77,7 +78,7 @@ class Screen(ABC):
         self._current_context = context
         try:
             raw_layout = self.get_layout()
-            layout: list[list[InlineKeyboardButton]] = [
+            layout: list[list[KeyboardButton]] = [
                 [
                     item.render() if isinstance(item, Component) else item
                     for item in row
@@ -125,7 +126,7 @@ class Screen(ABC):
     async def _send_or_update_message(
         self,
         text: str,
-        keyboard_markup: Sequence[Sequence[InlineKeyboardButton]],
+        keyboard_markup: Sequence[Sequence[KeyboardButton]],
     ) -> None:
         update = self._current_update
         if update is None:
@@ -137,19 +138,26 @@ class Screen(ABC):
             assert self._current_context is not None
             await self._backend.send_keyboard_message(target_update, self._current_context, text, keyboard_markup)
             return
-        from telegram import InlineKeyboardMarkup
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         from telegram.error import BadRequest
         try:
+            telegram_markup: list[list[InlineKeyboardButton]] = [
+                [
+                    InlineKeyboardButton(text=kb.text, callback_data=kb.callback_data)
+                    for kb in row
+                ]
+                for row in keyboard_markup
+            ]
             if target_update.message:
                 await target_update.message.reply_text(
                     text=text,
-                    reply_markup=InlineKeyboardMarkup(keyboard_markup),
+                    reply_markup=InlineKeyboardMarkup(telegram_markup),
                     parse_mode="HTML",
                 )
             elif target_update.callback_query:
                 await target_update.callback_query.edit_message_text(
                     text=text,
-                    reply_markup=InlineKeyboardMarkup(keyboard_markup),
+                    reply_markup=InlineKeyboardMarkup(telegram_markup),
                     parse_mode="HTML",
                 )
         except BadRequest as e:
@@ -206,7 +214,7 @@ class ScreenGroup(Screen):
 
     def get_layout(
         self,
-    ) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
+    ) -> Sequence[Sequence[KeyboardButton | Component]]:
         return self._screen_stack[-1].get_layout()
 
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:

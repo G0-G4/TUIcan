@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from telegram import InlineKeyboardButton
+from tuican.keyboard_button import KeyboardButton
 from tuican.components.checkbox import CheckBox, ExclusiveCheckBoxGroup
 
 
@@ -30,7 +30,7 @@ class TestCheckBox:
         cb.parent_screen = mock_screen
         result = cb.render()
 
-        assert isinstance(result, InlineKeyboardButton)
+        assert isinstance(result, KeyboardButton)
         assert result.text == "Option"
         assert result.callback_data == cb.callback_data
 
@@ -40,7 +40,7 @@ class TestCheckBox:
         cb.parent_screen = mock_screen
         result = cb.render()
 
-        assert isinstance(result, InlineKeyboardButton)
+        assert isinstance(result, KeyboardButton)
         assert result.text == "✓ Option"
 
     @pytest.mark.asyncio

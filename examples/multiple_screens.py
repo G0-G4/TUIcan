@@ -2,10 +2,10 @@ import os
 from typing import ClassVar, Sequence
 
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton
 
 from tuican import Application
 from tuican.components import Button, Component, Screen, ScreenGroup
+from tuican.keyboard_button import KeyboardButton
 
 
 class NavigationScreen(Screen):
@@ -23,7 +23,7 @@ class NavigationScreen(Screen):
         super().__init__([self.left_btn, self.right_btn, self.home_btn, self.back_btn],
                          message=f"Screen {name}")
 
-    def get_layout(self) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
+    def get_layout(self) -> Sequence[Sequence[KeyboardButton | Component]]:
         buttons = []
         if self.left_screen:
             buttons.append(self.left_btn)
