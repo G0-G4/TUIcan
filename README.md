@@ -179,9 +179,8 @@ Base class with:
 ## Examples
 
 See the `examples/` directory for:
-- `press_counter.py` - Simple button counter
-- `components_showcase.py` - All component types demo
-- `multiple_screens.py` - Screen navigation example
+- `hello_world.py` — Simple counter + name input. Shows basic buttons and text input on a single screen.
+- `todo_list.py` — Full todo app with dynamic layout updates and multi-screen navigation (list ↔ add todo).
 
 ## Requirements
 
