@@ -12,8 +12,12 @@ class Screen(ABC):
 
     def __init__(self, components: list[Component], message: str = None):
         self._message = message
-        self._components = components
+        self._components = list(components)
         self._update_to_display_on = None
+        self._callback_map: dict[str, Component] = {}
+        self._message_components: list[MessageHandlingComponent] = []
+        for comp in components:
+            self._register_component(comp)
 
     @property
     def message(self) -> str:
@@ -33,32 +37,44 @@ class Screen(ABC):
         await self._send_or_update_message(update, self._message, layout)
 
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        # TODO: optimisation make a map of components and remove iteration
         query = update.callback_query
         if query is not None:
-            for component in self._components:
-                if await component.handle_callback(update, context):
-                    return True
+            component = self._callback_map.get(query.data)
+            if component is not None:
+                return await component.handle_callback(update, context)
         return False
 
     async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        # TODO: optimisation make a map of components and remove iteration
         message = update.message
         if message is not None:
-            for component in self._components:
-                if isinstance(component, MessageHandlingComponent):
-                    if await component.handle_message(update, context):
-                        return True
+            for component in self._message_components:
+                if await component.handle_message(update, context):
+                    return True
         return False
 
     def add_component(self, comp: Component):
         self._components.append(comp)
+        self._register_component(comp)
 
     def add_components(self, comps: list[Component]):
-        self._components.extend(comps)
+        for comp in comps:
+            self.add_component(comp)
 
     def delete_component(self, comp: Component):
         self._components.remove(comp)
+        self._unregister_component(comp)
+
+    def _register_component(self, comp: Component):
+        self._callback_map[comp.callback_data] = comp
+        if isinstance(comp, MessageHandlingComponent):
+            self._message_components.append(comp)
+
+    def _unregister_component(self, comp: Component):
+        mapped = self._callback_map.get(comp.callback_data)
+        if mapped is comp:
+            del self._callback_map[comp.callback_data]
+        if isinstance(comp, MessageHandlingComponent):
+            self._message_components.remove(comp)
 
     async def _send_or_update_message(self, update: Update, text: str,
                                       keyboard_markup: Sequence[Sequence[InlineKeyboardButton]]):
