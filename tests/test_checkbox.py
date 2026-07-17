@@ -92,8 +92,8 @@ class TestCheckBox:
         assert cb.selected is False
 
     @pytest.mark.asyncio
-    async def test_check_does_not_trigger_on_change_without_group(self, mock_update, mock_context):
-        """check() does not trigger on_change when no group (current behavior)"""
+    async def test_check_triggers_on_change_without_group(self, mock_update, mock_context):
+        """check() should trigger on_change handler even without a group"""
         handler_called = False
 
         async def handler(update, context, component):
@@ -103,7 +103,7 @@ class TestCheckBox:
         cb = CheckBox(text="Test", on_change=handler)
         await cb.check(mock_update, mock_context)
 
-        assert handler_called is False
+        assert handler_called is True
 
     @pytest.mark.asyncio
     async def test_check_triggers_on_change_with_group(self, mock_update, mock_context):

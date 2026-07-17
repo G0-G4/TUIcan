@@ -6,7 +6,7 @@ from .component import Component
 
 class Hline(Component):
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        ...
+        return False
 
     def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
         return InlineKeyboardButton(

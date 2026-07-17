@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any, Callable, Coroutine
 
@@ -6,9 +7,13 @@ from telegram.ext import Application as TgApplication, ApplicationBuilder, Callb
     CommandHandler, ContextTypes, \
     MessageHandler, filters
 
+from .backend import PythonTelegramBotBackend
 from .components import Screen
 from .components.screen import StartScreenProtocol
 from .errors import ValidationError
+from .state_store import InMemoryStateStore, StateStore
+
+Middleware = Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, bool]]
 
 
 def get_user_id(update: Update):
@@ -20,17 +25,22 @@ def get_user_id(update: Update):
 
 
 class Application:
-    def __init__(self, token: str, screens: dict[str, StartScreenProtocol]):
+    def __init__(self, token: str, screens: dict[str, StartScreenProtocol], state_store: StateStore | None = None):
         self._app_builder = ApplicationBuilder().token(token)
         self._app = None
         self._user_screens: dict[tuple[str, int], Screen] = dict()
         self._screen_factories = screens
-        self._command = None
+        self._user_commands: dict[int, str] = {}
+        self._backend = PythonTelegramBotBackend()
+        self._state_store = state_store or InMemoryStateStore()
+        self._middlewares: list[Middleware] = []
         self._post_init = None
         self._post_shutdown = None
 
     def _build(self):
         async def wrapper(application: TgApplication):
+            loaded = await self._state_store.load_all()
+            self._user_commands.update({int(k): v for k, v in loaded.items()})
             await application.bot.set_my_commands(
                 [BotCommand(c, s.description) for c, s in self._screen_factories.items()])
             if self._post_init:
@@ -52,6 +62,16 @@ class Application:
         self._build()
         self._app.run_polling(allowed_updates=Update.ALL_TYPES)
 
+    def run_webhook(self, webhook_url: str, listen: str = "0.0.0.0", port: int = 8080, **kwargs):
+        self._build()
+        self._app.run_webhook(
+            webhook_url=webhook_url,
+            listen=listen,
+            port=port,
+            allowed_updates=Update.ALL_TYPES,
+            **kwargs
+        )
+
     def post_shutdown(self, function: Callable[[TgApplication], Coroutine[Any, Any, None]]):
         self._post_shutdown = function
         return self
@@ -60,21 +80,34 @@ class Application:
         self._post_init = function
         return self
 
+    def middleware(self, function: Middleware):
+        self._middlewares.append(function)
+        return function
+
+    async def _run_middlewares(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        for mw in self._middlewares:
+            result = await mw(update, context)
+            if result is False:
+                return False
+        return True
+
     async def handle_exception(self, e: Exception, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        chat_id = update.effective_chat.id
-        print(e)
-        await context.bot.send_message(chat_id=chat_id, text=str(e))
+        logging.getLogger(__name__).exception("Unhandled exception in update handler")
+        await self._backend.send_plain_message(update, context, str(e))
 
     async def command_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        self.remove_current_screen(update)
+        if not await self._run_middlewares(update, context):
+            return
+        await self.remove_current_screen(update)
         command_args = update.message.text.replace('/', '').split(' ')
-        self._command = command_args[0]
+        await self._set_user_command(update, command_args[0])
         screen = await self.get_or_create_screen(update, context, command_args)
         screen.clear_update()
         await screen.start_handler(update, context)
 
-
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self._run_middlewares(update, context):
+            return
         screen = await self.get_or_create_screen(update, context)
         try:
             if await screen.dispatcher(update, context):
@@ -83,27 +116,31 @@ class Application:
             await self.handle_exception(e, update, context)
 
     async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not await self._run_middlewares(update, context):
+            return
         screen = await self.get_or_create_screen(update, context)
-        chat_id = update.effective_chat.id
         try:
             if await screen.message_dispatcher(update, context):
                 message_id_to_delete = update.message.id
                 await screen.display(update, context)
-                await context.bot.delete_message(chat_id=chat_id, message_id=message_id_to_delete)
+                await self._backend.delete_message(update, context, message_id_to_delete)
         except ValidationError as e:
-            await context.bot.send_message(chat_id=chat_id, text=str(e))
+            await self._backend.send_plain_message(update, context, str(e))
         except Exception as e:
             await self.handle_exception(e, update, context)
 
     async def get_or_create_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, args=None):
-        not_initiated = self._command is None
+        command = self._get_user_command(update)
+        not_initiated = command is None
         if not_initiated:
-            print("command is empty. possible press on button after restart. start will be shown")
-            self._command = 'start'
+            logging.getLogger(__name__).info("command is empty. possible press on button after restart. start will be shown")
+            command = 'start'
+            await self._set_user_command(update, command)
         user_id = get_user_id(update)
-        factory = self._screen_factories[self._command]
-        key = (self._command, user_id)
+        factory = self._screen_factories[command]
+        key = (command, user_id)
         screen = self._user_screens.get(key, factory())
+        screen.backend = self._backend
         if key not in self._user_screens:
             self._user_screens[key] = screen
             await screen.command_handler(args if args is not None else [], update, context)
@@ -111,8 +148,27 @@ class Application:
             await screen.display(update, context)
         return screen
 
-    def remove_current_screen(self, update: Update):
+    async def remove_current_screen(self, update: Update):
         user_id = get_user_id(update)
-        key = (self._command, user_id)
+        command = self._get_user_command(update)
+        if command is None:
+            return
+        key = (command, user_id)
         if key in self._user_screens:
             del self._user_screens[key]
+        await self._remove_user_command(update)
+
+    def _get_user_command(self, update: Update) -> str | None:
+        user_id = get_user_id(update)
+        return self._user_commands.get(user_id)
+
+    async def _set_user_command(self, update: Update, command: str):
+        user_id = get_user_id(update)
+        self._user_commands[user_id] = command
+        await self._state_store.save(user_id, command)
+
+    async def _remove_user_command(self, update: Update):
+        user_id = get_user_id(update)
+        if user_id in self._user_commands:
+            del self._user_commands[user_id]
+        await self._state_store.delete(user_id)

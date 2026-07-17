@@ -31,22 +31,22 @@ class TestInput:
         assert inp.value == "test"
 
     def test_render_inactive(self, mock_update, mock_context):
-        """render() should show inactive state"""
+        """render() should show inactive state without active prompt"""
         inp = Input[str](validation_function=lambda x: x, text="Name:")
         result = inp.render(mock_update, mock_context)
 
         assert isinstance(result, InlineKeyboardButton)
         assert "Name:" in result.text
-        assert "Введите" not in result.text
+        assert "Enter:" not in result.text
 
     def test_render_active(self, mock_update, mock_context):
-        """render() should show active state with prompt"""
+        """render() should show active state with default English prompt"""
         inp = Input[str](validation_function=lambda x: x, text="Name:")
         inp._active = True
         result = inp.render(mock_update, mock_context)
 
         assert isinstance(result, InlineKeyboardButton)
-        assert "Введите" in result.text
+        assert "Enter:" in result.text
         assert "Name:" in result.text
 
     def test_render_with_value(self, mock_update, mock_context):

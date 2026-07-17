@@ -14,18 +14,21 @@ class Input[T](MessageHandlingComponent):
                  value: T | None = None,
                  component_id: str | None = None,
                  callback_data: str = "",
-                 on_change: CallBack | None = None):
+                 on_change: CallBack | None = None,
+                 active_prompt: str = "Enter: "):
         """
         Initialize the Input component.
 
         Args:
             on_change: Callback function that will be called with the input value
+            active_prompt: Prefix shown when input is active and accepting messages
         """
         super().__init__(component_id, callback_data, on_change)
         self._value = value
         self._text = text
         self._active = False
         self._validation_function = validation_function
+        self._active_prompt = active_prompt
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         """
@@ -62,7 +65,7 @@ class Input[T](MessageHandlingComponent):
 
     def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
         return InlineKeyboardButton(
-            f"{'Введите ' if self.active else ''}{self._text}{self._value if self._value is not None else ''}",
+            f"{self._active_prompt if self.active else ''}{self._text}{self._value if self._value is not None else ''}",
             callback_data=self.callback_data
         )
 

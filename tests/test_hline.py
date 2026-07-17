@@ -19,8 +19,8 @@ class TestHline:
         assert result.callback_data == hline.callback_data
 
     @pytest.mark.asyncio
-    async def test_handle_callback_returns_none(self, mock_update, mock_context):
-        """handle_callback returns None (no-op)"""
+    async def test_handle_callback_returns_false(self, mock_update, mock_context):
+        """handle_callback returns False (no-op) to satisfy bool return type"""
         hline = Hline()
         result = await hline.handle_callback(mock_update, mock_context)
-        assert result is None
+        assert result is False

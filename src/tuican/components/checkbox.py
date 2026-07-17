@@ -45,7 +45,7 @@ class CheckBox(Component):
     async def call_on_change(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if self._group:
             self._group.notify(self)
-            await super().call_on_change(update, context)
+        await super().call_on_change(update, context)
 
     def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
         return InlineKeyboardButton(
