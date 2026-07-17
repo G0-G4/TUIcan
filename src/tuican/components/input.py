@@ -59,10 +59,16 @@ class Input[T](MessageHandlingComponent):
         return True
 
     def render(self) -> KeyboardButton:
-        return KeyboardButton(
-            text=f"{self._active_prompt if self.active else ''}{self._text}{self._value if self._value is not None else ''}",
-            callback_data=self.callback_data
-        )
+        if self.active:
+            text = f"{self._active_prompt}{self._value if self._value is not None else ''}"
+        else:
+            if self._value is not None and self._text:
+                text = f"{self._text}: {self._value}"
+            elif self._value is not None:
+                text = str(self._value)
+            else:
+                text = self._text
+        return KeyboardButton(text=text, callback_data=self.callback_data)
 
     async def activate(self) -> None:
         """Activate the input to start accepting messages"""

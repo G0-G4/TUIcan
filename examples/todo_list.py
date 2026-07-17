@@ -87,7 +87,7 @@ class AddTodoScreen(Screen):
         if hasattr(component, "value") and component.value:
             self.list_screen.todos.append((str(component.value), False))
             self.list_screen.message = self.list_screen._list_message()
-        await self.group.go_back(self.update, self.context)
+            await self.group.go_back(self.update, self.context)
 
     async def go_back(self):
         await self.group.go_back(self.update, self.context)

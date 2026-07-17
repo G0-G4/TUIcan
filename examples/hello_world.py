@@ -34,8 +34,9 @@ class HelloScreen(Screen):
         self.message = self._greeting()
 
     def handle_name(self, component: Input):
-        self.name = component.value or "World"
-        self.message = self._greeting()
+        if component.value is not None:
+            self.name = component.value
+            self.message = self._greeting()
 
     def get_layout(self):
         return [

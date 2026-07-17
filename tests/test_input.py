@@ -32,33 +32,43 @@ class TestInput:
 
     def test_render_inactive(self, mock_screen):
         """render() should show inactive state without active prompt"""
-        inp = Input[str](validation_function=lambda x: x, text="Name:")
+        inp = Input[str](validation_function=lambda x: x, text="Name")
         inp.parent_screen = mock_screen
         result = inp.render()
 
         assert isinstance(result, KeyboardButton)
-        assert "Name:" in result.text
+        assert "Name" == result.text
         assert "Enter:" not in result.text
 
     def test_render_active(self, mock_screen):
-        """render() should show active state with default English prompt"""
-        inp = Input[str](validation_function=lambda x: x, text="Name:")
+        """render() should show active state with default English prompt and value"""
+        inp = Input[str](validation_function=lambda x: x, text="Name", value="John")
         inp._active = True
         inp.parent_screen = mock_screen
         result = inp.render()
 
         assert isinstance(result, KeyboardButton)
         assert "Enter:" in result.text
-        assert "Name:" in result.text
+        assert "John" in result.text
+        assert "Name" not in result.text
 
-    def test_render_with_value(self, mock_screen):
-        """render() should display current value"""
-        inp = Input[int](validation_function=int, text="Age:", value=25)
+    def test_render_inactive_with_value(self, mock_screen):
+        """render() should show label and value when inactive"""
+        inp = Input[str](validation_function=lambda x: x, text="Name", value="John")
         inp.parent_screen = mock_screen
         result = inp.render()
 
         assert isinstance(result, KeyboardButton)
-        assert "25" in result.text
+        assert "Name: John" == result.text
+
+    def test_render_with_value(self, mock_screen):
+        """render() should display label and current value separated by colon"""
+        inp = Input[int](validation_function=int, text="Age", value=25)
+        inp.parent_screen = mock_screen
+        result = inp.render()
+
+        assert isinstance(result, KeyboardButton)
+        assert "Age: 25" == result.text
 
     @pytest.mark.asyncio
     async def test_handle_callback_mismatch_returns_false(self, mock_screen):
