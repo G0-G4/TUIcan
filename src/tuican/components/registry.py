@@ -1,0 +1,85 @@
+from typing import TYPE_CHECKING
+
+from telegram import Update
+from telegram.ext import ContextTypes
+
+from .component import Component, MessageHandlingComponent
+
+if TYPE_CHECKING:
+    from .screen import Screen
+
+
+class ComponentRegistry:
+    """Encapsulates component registration, callback dispatching, and focus management."""
+
+    def __init__(self, components: list[Component], parent_screen: "Screen | None" = None):
+        self._parent_screen = parent_screen
+        self._components: list[Component] = list(components)
+        self._callback_map: dict[str, Component] = {}
+        self._message_components: list[MessageHandlingComponent] = []
+        self._active_message_component: MessageHandlingComponent | None = None
+        for comp in components:
+            self._register_component(comp)
+
+    @property
+    def components(self) -> list[Component]:
+        return list(self._components)
+
+    @property
+    def callback_map(self) -> dict[str, Component]:
+        return dict(self._callback_map)
+
+    @property
+    def active_message_component(self) -> MessageHandlingComponent | None:
+        return self._active_message_component
+
+    def add_component(self, comp: Component):
+        self._components.append(comp)
+        self._register_component(comp)
+
+    def add_components(self, comps: list[Component]):
+        for comp in comps:
+            self.add_component(comp)
+
+    def delete_component(self, comp: Component):
+        self._components.remove(comp)
+        self._unregister_component(comp)
+
+    def _register_component(self, comp: Component):
+        self._callback_map[comp.callback_data] = comp
+        comp.parent_screen = self._parent_screen
+        if isinstance(comp, MessageHandlingComponent):
+            self._message_components.append(comp)
+
+    def clear_active_message_component(self, component: MessageHandlingComponent):
+        if self._active_message_component is component:
+            self._active_message_component = None
+
+    def _unregister_component(self, comp: Component):
+        mapped = self._callback_map.get(comp.callback_data)
+        if mapped is comp:
+            del self._callback_map[comp.callback_data]
+        if isinstance(comp, MessageHandlingComponent):
+            if self._active_message_component is comp:
+                self._active_message_component = None
+            self._message_components.remove(comp)
+
+    async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        query = update.callback_query
+        if query is not None and query.data is not None:
+            component = self._callback_map.get(query.data)
+            if component is not None:
+                return await component.handle_callback(update, context)
+        return False
+
+    async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        message = update.message
+        if message is not None and self._active_message_component is not None:
+            return await self._active_message_component.handle_message(update, context)
+        return False
+
+    async def set_focus(self, focused_component: MessageHandlingComponent | None, update: Update,
+                        context: ContextTypes.DEFAULT_TYPE):
+        if self._active_message_component is not None and self._active_message_component is not focused_component:
+            await self._active_message_component.deactivate(update, context)
+        self._active_message_component = focused_component

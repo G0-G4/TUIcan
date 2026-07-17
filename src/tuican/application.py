@@ -11,7 +11,8 @@ from .backend import PythonTelegramBotBackend
 from .components import Screen
 from .components.screen import StartScreenProtocol
 from .errors import ValidationError
-from .state_store import InMemoryStateStore, StateStore
+from .state_store import StateStore
+from .stores import InMemoryStateStore
 
 Middleware = Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, bool]]
 
