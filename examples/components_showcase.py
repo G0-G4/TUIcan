@@ -2,8 +2,7 @@ import os
 from typing import ClassVar, Sequence
 
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, Update
-from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton
 
 from tuican import Application, get_user_id
 from tuican.components import Button, CheckBox, Component, ExclusiveCheckBoxGroup, Hline, Input, Screen
@@ -20,20 +19,20 @@ class ComponentsScreen(Screen):
         self.input = Input[int](text="возраст: ", value=123, on_change=self.update_message, validation_function=positive_int)
         super().__init__([self.check_box_1, self.check_box_2, self.button, self.input], message="show case")
 
-    def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
+    def update_message(self, component: Component):
         text = ""
         if isinstance(component, CheckBox) or isinstance(component, Button) or isinstance(component, Input):
             text = component.text
             self.message = "pressed " + text
-        print(str(get_user_id(update)) + " pressed " + text)
+        print(str(get_user_id(self.update)) + " pressed " + text)
 
-    async def get_layout(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> Sequence[
-        Sequence[InlineKeyboardButton]]:
+    def get_layout(self) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
         return [
-            [self.check_box_1.render(update, context), self.check_box_2.render(update, context)],
-            [self.button.render(update, context)],
-            [self.input.render(update, context)]
+            [self.check_box_1, self.check_box_2],
+            [self.button],
+            [self.input],
         ]
+
 
 class SecondScreen(Screen):
     description: ClassVar[str] = 'second screen'
@@ -41,9 +40,8 @@ class SecondScreen(Screen):
         self.hline = Hline()
         super().__init__([self.hline], message="second screen")
 
-    async def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
-        return [[self.hline.render(update, context)]]
-
+    def get_layout(self) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
+        return [[self.hline]]
 
 
 load_dotenv()

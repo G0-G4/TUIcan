@@ -1,7 +1,6 @@
 from collections.abc import Callable
 
-from telegram import InlineKeyboardButton, Update
-from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton
 
 from .component import CallBack, MessageHandlingComponent
 
@@ -30,18 +29,14 @@ class Input[T](MessageHandlingComponent):
         self._validation_function = validation_function
         self._active_prompt = active_prompt
 
-    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    async def handle_message(self) -> bool:
         """
         Handle incoming text messages.
-
-        Args:
-            update: Telegram update object
-            context: Telegram context object
 
         Returns:
             bool: True if message was handled, False otherwise
         """
-        message = update.message
+        message = self.update.message if self.update else None
         if not message or not message.text:
             return False
 
@@ -50,48 +45,48 @@ class Input[T](MessageHandlingComponent):
 
         self._value = self.validate_input(message.text.strip())
 
-        await self.call_on_change(update, context)
+        await self.call_on_change()
 
         self._active = False
         if self.parent_screen is not None:
             self.parent_screen.clear_active_message_component(self)
         return True
 
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        query = update.callback_query
+    async def handle_callback(self) -> bool:
+        query = self.update.callback_query if self.update else None
         if query is None or query.data is None or query.data != self.callback_data:
             return False
-        await self.toggle(update, context)
+        await self.toggle()
         return True
 
-    def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
+    def render(self) -> InlineKeyboardButton:
         return InlineKeyboardButton(
             f"{self._active_prompt if self.active else ''}{self._text}{self._value if self._value is not None else ''}",
             callback_data=self.callback_data
         )
 
-    async def activate(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def activate(self) -> None:
         """Activate the input to start accepting messages"""
         self._active = True
         self._value = None
         if self.parent_screen is not None:
-            await self.parent_screen.set_focus(self, update, context)
-        await self.call_on_change(update, context)
+            await self.parent_screen.set_focus(self)
+        await self.call_on_change()
 
-    async def deactivate(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def deactivate(self) -> None:
         """Deactivate the input to stop accepting messages"""
         self._active = False
         if self.parent_screen is not None:
             self.parent_screen.clear_active_message_component(self)
-        await self.call_on_change(update, context)
+        await self.call_on_change()
 
-    async def toggle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def toggle(self) -> None:
         self._active = not self.active
         if self._active and self.parent_screen is not None:
-            await self.parent_screen.set_focus(self, update, context)
+            await self.parent_screen.set_focus(self)
         elif not self._active and self.parent_screen is not None:
             self.parent_screen.clear_active_message_component(self)
-        await self.call_on_change(update, context)
+        await self.call_on_change()
 
     def validate_input(self, text: str) -> T:
         return self._validation_function(text)

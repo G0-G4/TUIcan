@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
-from telegram import InlineKeyboardButton, Update
-from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton
 
 from tuican.components import Screen, Input
 
@@ -12,16 +11,16 @@ class TwoInputScreen(Screen):
         self.input_b = Input[int](validation_function=int, text="B:", callback_data="b")
         super().__init__([self.input_a, self.input_b], message="test")
 
-    async def get_layout(self, update, context):
+    def get_layout(self):
         return [
-            [self.input_a.render(update, context)],
-            [self.input_b.render(update, context)],
+            [self.input_a],
+            [self.input_b],
         ]
 
 
 @pytest.fixture
 def mock_update():
-    update = MagicMock(spec=Update)
+    update = MagicMock()
     update.callback_query = None
     update.message = None
     return update
@@ -29,7 +28,7 @@ def mock_update():
 
 @pytest.fixture
 def mock_context():
-    context = MagicMock(spec=ContextTypes.DEFAULT_TYPE)
+    context = MagicMock()
     context.bot = MagicMock()
     return context
 
@@ -40,10 +39,10 @@ class TestScreenFocus:
         """set_focus should deactivate all other active MessageHandlingComponents"""
         screen = TwoInputScreen()
 
-        await screen.input_b.activate(mock_update, mock_context)
+        await screen.input_b.activate()
         assert screen.input_b.active is True
 
-        await screen.set_focus(screen.input_a, mock_update, mock_context)
+        await screen.set_focus(screen.input_a)
 
         assert screen.input_a.active is False  # input_a was not active, stays inactive
         assert screen.input_b.active is False    # input_b was active but not focused, so it was deactivated
@@ -53,10 +52,10 @@ class TestScreenFocus:
         """Activating one input should automatically deactivate another active input via set_focus"""
         screen = TwoInputScreen()
 
-        await screen.input_b.activate(mock_update, mock_context)
+        await screen.input_b.activate()
         assert screen.input_b.active is True
 
-        await screen.input_a.activate(mock_update, mock_context)
+        await screen.input_a.activate()
 
         assert screen.input_a.active is True
         assert screen.input_b.active is False
@@ -66,10 +65,10 @@ class TestScreenFocus:
         """Toggling one input on should deactivate another active input via set_focus"""
         screen = TwoInputScreen()
 
-        await screen.input_b.activate(mock_update, mock_context)
+        await screen.input_b.activate()
         assert screen.input_b.active is True
 
-        await screen.input_a.toggle(mock_update, mock_context)
+        await screen.input_a.toggle()
 
         assert screen.input_a.active is True
         assert screen.input_b.active is False
@@ -90,7 +89,7 @@ class TestScreenFocus:
         screen.input_a.deactivate = AsyncMock()
         screen.input_b.deactivate = AsyncMock()
 
-        await screen.set_focus(screen.input_a, mock_update, mock_context)
+        await screen.set_focus(screen.input_a)
 
         screen.input_a.deactivate.assert_not_awaited()
         screen.input_b.deactivate.assert_not_awaited()

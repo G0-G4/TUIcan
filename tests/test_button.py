@@ -23,59 +23,64 @@ class TestButton:
         button.text = "New"
         assert button.text == "New"
 
-    def test_render_returns_inline_keyboard_button(self, mock_update, mock_context):
+    def test_render_returns_inline_keyboard_button(self, mock_screen):
         """render() should return an InlineKeyboardButton with correct callback_data"""
         button = Button(text="Test", callback_data="test_cb")
-        result = button.render(mock_update, mock_context)
+        button.parent_screen = mock_screen
+        result = button.render()
 
         assert isinstance(result, InlineKeyboardButton)
         assert result.text == "Test"
         assert result.callback_data == "test_cb"
 
     @pytest.mark.asyncio
-    async def test_handle_callback_mismatch_returns_false(self, mock_update, mock_context):
+    async def test_handle_callback_mismatch_returns_false(self, mock_screen):
         """handle_callback should return False when callback_data doesn't match"""
         button = Button(text="Test", callback_data="correct_data")
-        mock_update.callback_query.data = "wrong_data"
-        result = await button.handle_callback(mock_update, mock_context)
+        button.parent_screen = mock_screen
+        mock_screen.update.callback_query.data = "wrong_data"
+        result = await button.handle_callback()
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_handle_callback_match_returns_true(self, mock_update, mock_context):
+    async def test_handle_callback_match_returns_true(self, mock_screen):
         """handle_callback should return True and trigger click when callback_data matches"""
         handler_called = False
         received_component = None
 
-        async def handler(update, context, component):
+        async def handler(component):
             nonlocal handler_called, received_component
             handler_called = True
             received_component = component
 
         button = Button(text="Test", callback_data="match_data", on_change=handler)
-        mock_update.callback_query.data = "match_data"
-        result = await button.handle_callback(mock_update, mock_context)
+        button.parent_screen = mock_screen
+        mock_screen.update.callback_query.data = "match_data"
+        result = await button.handle_callback()
 
         assert result is True
         assert handler_called is True
         assert received_component is button
 
     @pytest.mark.asyncio
-    async def test_click_triggers_on_change(self, mock_update, mock_context):
+    async def test_click_triggers_on_change(self, mock_screen):
         """click() should trigger the on_change handler"""
         handler_called = False
 
-        async def handler(update, context, component):
+        async def handler():
             nonlocal handler_called
             handler_called = True
 
         button = Button(text="Test", callback_data="test", on_change=handler)
-        await button.click(mock_update, mock_context)
+        button.parent_screen = mock_screen
+        await button.click()
 
         assert handler_called is True
 
     @pytest.mark.asyncio
-    async def test_click_no_handler(self, mock_update, mock_context):
+    async def test_click_no_handler(self, mock_screen):
         """click() should not fail when no handler is set"""
         button = Button(text="Test")
-        await button.click(mock_update, mock_context)
+        button.parent_screen = mock_screen
+        await button.click()
         # Should not raise

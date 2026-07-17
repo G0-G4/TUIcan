@@ -1,5 +1,4 @@
-from telegram import InlineKeyboardButton, Update
-from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton
 
 from .component import CallBack, Component
 
@@ -14,18 +13,18 @@ class Button(Component):
         super().__init__(component_id, callback_data, on_change)
         self._text = text
 
-    async def click(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def click(self) -> None:
         if self.on_change:
-            await self.call_on_change(update, context)
+            await self.call_on_change()
 
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        query = update.callback_query
+    async def handle_callback(self) -> bool:
+        query = self.update.callback_query if self.update else None
         if query is None or query.data is None or query.data != self.callback_data:
             return False
-        await self.click(update, context)
+        await self.click()
         return True
 
-    def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
+    def render(self) -> InlineKeyboardButton:
         return InlineKeyboardButton(
             self._text,
             callback_data=self.callback_data
@@ -36,5 +35,5 @@ class Button(Component):
         return self._text
 
     @text.setter
-    def text(self, text):
+    def text(self, text: str) -> None:
         self._text = text

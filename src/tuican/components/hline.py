@@ -1,14 +1,13 @@
-from telegram import InlineKeyboardButton, Update
-from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton
 
 from .component import Component
 
 
 class Hline(Component):
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    async def handle_callback(self) -> bool:
         return False
 
-    def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
+    def render(self) -> InlineKeyboardButton:
         return InlineKeyboardButton(
             f"───────────────",
             callback_data=self.callback_data

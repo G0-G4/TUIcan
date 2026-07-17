@@ -1,12 +1,10 @@
 import os
-from typing import ClassVar, Sequence
+from typing import ClassVar
 
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, Update
-from telegram.ext import ContextTypes
 
-from src.tuican import Application
-from src.tuican.components import Button, Component, Screen
+from tuican import Application
+from tuican.components import Button, Screen
 
 
 class ButtonScreen(Screen):
@@ -16,17 +14,16 @@ class ButtonScreen(Screen):
         self.b = Button(text="my button", on_change=self.update_message)
         super().__init__([self.b], message="no presses")
 
-    def update_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
+    def update_message(self):
         self.c += 1
         self.message = "pressed " + str(self.c)
 
-    async def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
-        return [[self.b.render(update, context)]]
+    def get_layout(self):
+        return [[self.b]]
 
 
 load_dotenv()
 token = os.getenv("token")
-main_screen = ButtonScreen()
 
 app = Application(token, {'start': ButtonScreen})
 app.run()

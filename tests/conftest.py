@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from telegram import Update, CallbackQuery, InlineKeyboardButton
 from telegram.ext import ContextTypes
 
@@ -23,17 +23,30 @@ def mock_context():
 
 
 @pytest.fixture
-def make_component():
+def mock_screen(mock_update, mock_context):
+    """Create a mock Screen that provides update/context to components"""
+    screen = MagicMock()
+    screen.update = mock_update
+    screen.context = mock_context
+    screen.set_focus = AsyncMock()
+    return screen
+
+
+@pytest.fixture
+def make_component(mock_screen):
     """Factory for creating mock components with callback_data"""
     def _make(callback_data="test_callback_data", component_id=None):
         from tuican.components.component import Component
         
         class MockComponent(Component):
-            async def handle_callback(self, update, context):
-                return update.callback_query.data == self.callback_data
+            async def handle_callback(self):
+                query = self.update.callback_query if self.update else None
+                return query is not None and query.data == self.callback_data
             
-            def render(self, update, context):
+            def render(self):
                 return InlineKeyboardButton("test", callback_data=self.callback_data)
         
-        return MockComponent(component_id=component_id, callback_data=callback_data)
+        comp = MockComponent(component_id=component_id, callback_data=callback_data)
+        comp.parent_screen = mock_screen
+        return comp
     return _make

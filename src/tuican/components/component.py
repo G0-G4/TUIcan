@@ -1,45 +1,97 @@
+from __future__ import annotations
+
 import asyncio
+import inspect
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable
+from typing import Any, Coroutine, TYPE_CHECKING
 
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 
-CallBack = Callable[[Update, ContextTypes.DEFAULT_TYPE, "Component"], None] | Callable[
-    [Update, ContextTypes.DEFAULT_TYPE, "Component"], Coroutine[Any, Any, None]]
+if TYPE_CHECKING:
+    from .screen import Screen
+
+CallBack = Callable[..., None] | Callable[..., Coroutine[Any, Any, None]]
+
+
+def _invoke_callback(
+    callback: CallBack,
+    update: Update | None,
+    context: ContextTypes.DEFAULT_TYPE | None,
+    component: "Component",
+) -> None | Coroutine[Any, Any, None]:
+    """Invoke a callback passing only the parameters it actually accepts.
+
+    Supported signatures (0-3 positional params, ignoring *args/**kwargs):
+      - ()
+      - (component)
+      - (update, context)
+      - (update, context, component)
+    """
+    sig = inspect.signature(callback)
+    params = [
+        p
+        for p in sig.parameters.values()
+        if p.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+    ]
+    count = len(params)
+
+    args: list[Any]
+    if count == 0:
+        args = []
+    elif count == 1:
+        args = [component]
+    elif count == 2:
+        args = [update, context]
+    elif count == 3:
+        args = [update, context, component]
+    else:
+        raise TypeError(
+            f"Callback {callback!r} must accept 0-3 positional parameters, got {count}"
+        )
+
+    return callback(*args)
 
 
 class Component(ABC):
     def __init__(
-            self,
-            component_id: str | None = None,
-            callback_data: str | None = None,
-            on_change: CallBack | None = None,
-            hidden: bool = False,
-            data: Any = None):
+        self,
+        component_id: str | None = None,
+        callback_data: str | None = None,
+        on_change: CallBack | None = None,
+        hidden: bool = False,
+        data: Any = None,
+    ):
         self._component_id = component_id or str(id(self))
         self._callback_data = callback_data or self.component_id
         self.on_change = on_change
         self._hidden = False
         self._data = data
-        self._parent_screen = None
+        self._parent_screen: Screen | None = None
 
-    async def call_on_change(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    @property
+    def update(self) -> Update | None:
+        return self._parent_screen.update if self._parent_screen is not None else None
+
+    @property
+    def context(self) -> ContextTypes.DEFAULT_TYPE | None:
+        return self._parent_screen.context if self._parent_screen is not None else None
+
+    async def call_on_change(self) -> None:
         if not self.on_change:
             return
-        if asyncio.iscoroutinefunction(self.on_change):
-            await self.on_change(update, context, self)
-        else:
-            self.on_change(update, context, self)
+        result = _invoke_callback(self.on_change, self.update, self.context, self)
+        if asyncio.iscoroutine(result):
+            await result
 
     @abstractmethod
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    async def handle_callback(self) -> bool:
         raise NotImplementedError
 
     @abstractmethod
-    def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
+    def render(self) -> InlineKeyboardButton:
         raise NotImplementedError
-
 
     @property
     def callback_data(self) -> str:
@@ -54,31 +106,31 @@ class Component(ABC):
         return self._hidden
 
     @hidden.setter
-    def hidden(self, hidden: bool):
+    def hidden(self, hidden: bool) -> None:
         self._hidden = hidden
 
     @property
-    def data(self):
+    def data(self) -> Any:
         return self._data
 
     @data.setter
-    def data(self, data):
+    def data(self, data: Any) -> None:
         self._data = data
 
     @property
-    def parent_screen(self):
+    def parent_screen(self) -> Screen | None:
         return self._parent_screen
 
     @parent_screen.setter
-    def parent_screen(self, screen):
+    def parent_screen(self, screen: Screen | None) -> None:
         self._parent_screen = screen
 
 
 class MessageHandlingComponent(Component, ABC):
     @abstractmethod
-    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    async def handle_message(self) -> bool:
         raise NotImplementedError
 
     @abstractmethod
-    async def deactivate(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def deactivate(self) -> None:
         raise NotImplementedError

@@ -1,11 +1,12 @@
 import os
 from typing import ClassVar, Sequence
 
+from dotenv import load_dotenv
+from telegram import InlineKeyboardButton
+
 from tuican.application import Application
 from tuican.components import Button, Component, Screen, ScreenGroup
-from telegram import InlineKeyboardButton, Update
-from telegram.ext import ContextTypes
-from dotenv import load_dotenv
+
 
 test = [
     ["b1", "b2"],
@@ -22,15 +23,15 @@ class DailyScreen(Screen):
         self.group = group
         super().__init__([self.left, self.right], message="dynamic")
 
-    async def get_layout(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> Sequence[Sequence[InlineKeyboardButton]]:
+    def get_layout(self) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
         self.add_dynamic_components()
-        return [[b.render(update, context) for b in self.buttons]] + [[self.left.render(update, context), self.right.render(update, context)]]
+        return [[b for b in self.buttons]] + [[self.left, self.right]]
 
-    def left_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, comp: Component):
+    def left_handler(self):
         self.remove_dynamic_components()
         self.cursor = (self.cursor - 1) % len(test)
 
-    def right_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE, comp: Component):
+    def right_handler(self):
         self.remove_dynamic_components()
         self.cursor = (self.cursor + 1) % len(test)
 
@@ -46,12 +47,12 @@ class DailyScreen(Screen):
                 self.add_component(b)
                 self.buttons.append(b)
 
-    async def open_button_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, comp: Component):
+    async def open_button_screen(self, comp: Component):
         message = ""
         if isinstance(comp, Button):
             message = comp.text
         screen = ButtonScreen(self.group, message)
-        await self.group.go_to_screen(update, context, screen)
+        await self.group.go_to_screen(self.update, self.context, screen)
 
 class ButtonScreen(Screen):
 
@@ -60,11 +61,11 @@ class ButtonScreen(Screen):
         self.group = group
         super().__init__([self.back], message=message)
 
-    def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
-        return [[self.back.render(update, context)]]
+    def get_layout(self) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
+        return [[self.back]]
 
-    async def go_back(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str, comp: Component):
-        await self.group.go_back(update, context)
+    async def go_back(self):
+        await self.group.go_back(self.update, self.context)
 
 class MainScreen(ScreenGroup):
     description: ClassVar[str] = 'main screen'

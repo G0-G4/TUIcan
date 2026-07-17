@@ -3,9 +3,9 @@ from typing import ClassVar
 
 from dotenv import load_dotenv
 
-from examples.dynamic_layout import MainScreen
-from src.tuican.application import Application
-from src.tuican.components import Button, Screen
+from tuican.application import Application
+from tuican.components import Button, Screen
+
 
 class MyScreen(Screen):
     description: ClassVar[str] = 'main screen'
@@ -13,13 +13,14 @@ class MyScreen(Screen):
         self.button = Button("Click me", on_change=self.handle_click)
         super().__init__([self.button], message="click the button")
 
-    def handle_click(self, update, context, component):
+    def handle_click(self):
         self.message = "Hello world!"
 
-    async def get_layout(self, update, context):
-        return [[self.button.render(update, context)]]
+    def get_layout(self):
+        return [[self.button]]
+
 
 load_dotenv()
 token = os.getenv("token")
-app = Application(token, {'start': MainScreen})
+app = Application(token, {'start': MyScreen})
 app.run()

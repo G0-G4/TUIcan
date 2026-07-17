@@ -1,5 +1,4 @@
-from telegram import InlineKeyboardButton, Update
-from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton
 
 from .component import CallBack, Component
 
@@ -20,35 +19,35 @@ class CheckBox(Component):
         if self._group:
             self._group.add(self)
 
-    async def check(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def check(self) -> None:
         previous_state = self._selected
         self._selected = True
         if previous_state != self._selected:
-            await self.call_on_change(update, context)
+            await self.call_on_change()
 
-    async def uncheck(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def uncheck(self) -> None:
         previous_state = self._selected
         self._selected = False
         if previous_state != self._selected:
-            await self.call_on_change(update, context)
+            await self.call_on_change()
 
-    async def toggle(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def toggle(self) -> None:
         self._selected = not self._selected
-        await self.call_on_change(update, context)
+        await self.call_on_change()
 
-    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        query = update.callback_query
+    async def handle_callback(self) -> bool:
+        query = self.update.callback_query if self.update else None
         if query is None or query.data is None or query.data != self.callback_data:
             return False
-        await self.toggle(update, context)
+        await self.toggle()
         return True
 
-    async def call_on_change(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def call_on_change(self) -> None:
         if self._group:
             self._group.notify(self)
-        await super().call_on_change(update, context)
+        await super().call_on_change()
 
-    def render(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> InlineKeyboardButton:
+    def render(self) -> InlineKeyboardButton:
         return InlineKeyboardButton(
             f"{'✓ ' if self.selected else ''}{self.text}",
             callback_data=self.callback_data
@@ -59,11 +58,11 @@ class CheckBox(Component):
         return self._text
 
     @text.setter
-    def text(self, text):
+    def text(self, text: str) -> None:
         self._text = text
 
     @property
-    def selected(self):
+    def selected(self) -> bool:
         return self._selected
 
 
@@ -72,13 +71,13 @@ class ExclusiveCheckBoxGroup:
         self._checkboxes = [] if checkboxes is None else checkboxes
         self._sticky = sticky
 
-    def add(self, checkbox: CheckBox):
+    def add(self, checkbox: CheckBox) -> None:
         self._checkboxes.append(checkbox)
 
-    def add_all(self, checkboxes: list[CheckBox]):
+    def add_all(self, checkboxes: list[CheckBox]) -> None:
         self._checkboxes.extend(checkboxes)
 
-    def notify(self, notifier: CheckBox):
+    def notify(self, notifier: CheckBox) -> None:
         if self._sticky and not notifier.selected:
             notifier._selected = True
             return

@@ -2,11 +2,10 @@ import os
 from typing import ClassVar, Sequence
 
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, Update
-from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton
 
-from src.tuican import Application
-from src.tuican.components import Button, Component, Screen, ScreenGroup
+from tuican import Application
+from tuican.components import Button, Component, Screen, ScreenGroup
 
 
 class NavigationScreen(Screen):
@@ -24,29 +23,29 @@ class NavigationScreen(Screen):
         super().__init__([self.left_btn, self.right_btn, self.home_btn, self.back_btn],
                          message=f"Screen {name}")
 
-    async def get_layout(self, update, context) -> Sequence[Sequence[InlineKeyboardButton]]:
+    def get_layout(self) -> Sequence[Sequence[InlineKeyboardButton | Component]]:
         buttons = []
         if self.left_screen:
-            buttons.append(self.left_btn.render(update, context))
+            buttons.append(self.left_btn)
         if self.right_screen:
-            buttons.append(self.right_btn.render(update, context))
-        buttons.append(self.home_btn.render(update, context))
-        buttons.append(self.back_btn.render(update, context))
+            buttons.append(self.right_btn)
+        buttons.append(self.home_btn)
+        buttons.append(self.back_btn)
         return [buttons]
 
-    async def go_left(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
+    async def go_left(self):
         if self.left_screen:
-            await self.group.go_to_screen(update, context, self.left_screen)
+            await self.group.go_to_screen(self.update, self.context, self.left_screen)
 
-    async def go_right(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
+    async def go_right(self):
         if self.right_screen:
-            await self.group.go_to_screen(update, context, self.right_screen)
+            await self.group.go_to_screen(self.update, self.context, self.right_screen)
 
-    async def go_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
-        await self.group.go_home(update, context)
+    async def go_home(self):
+        await self.group.go_home(self.update, self.context)
 
-    async def go_back(self, update: Update, context: ContextTypes.DEFAULT_TYPE, component: Component):
-        await self.group.go_back(update, context)
+    async def go_back(self):
+        await self.group.go_back(self.update, self.context)
 
 
 class AppScreens(ScreenGroup):

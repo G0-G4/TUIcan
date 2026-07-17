@@ -54,51 +54,54 @@ class TestComponent:
         assert comp.parent_screen is screen
 
     @pytest.mark.asyncio
-    async def test_call_on_change_with_sync_handler(self, mock_update, mock_context):
+    async def test_call_on_change_with_sync_handler(self, mock_screen):
         """call_on_change should work with synchronous handlers"""
         handler_called = False
         received_component = None
 
-        def sync_handler(update, context, component):
+        def sync_handler(component):
             nonlocal handler_called, received_component
             handler_called = True
             received_component = component
 
         comp = self._make_component(callback_data="test_data", on_change=sync_handler)
-        await comp.call_on_change(mock_update, mock_context)
+        comp.parent_screen = mock_screen
+        await comp.call_on_change()
 
         assert handler_called is True
         assert received_component is comp
 
     @pytest.mark.asyncio
-    async def test_call_on_change_with_async_handler(self, mock_update, mock_context):
+    async def test_call_on_change_with_async_handler(self, mock_screen):
         """call_on_change should work with async handlers"""
         handler_called = False
         received_component = None
 
-        async def async_handler(update, context, component):
+        async def async_handler(component):
             nonlocal handler_called, received_component
             handler_called = True
             received_component = component
 
         comp = self._make_component(callback_data="test_data", on_change=async_handler)
-        await comp.call_on_change(mock_update, mock_context)
+        comp.parent_screen = mock_screen
+        await comp.call_on_change()
 
         assert handler_called is True
         assert received_component is comp
 
     @pytest.mark.asyncio
-    async def test_call_on_change_no_handler(self, mock_update, mock_context):
+    async def test_call_on_change_no_handler(self, mock_screen):
         """call_on_change should not fail when no handler is set"""
         comp = self._make_component()
-        await comp.call_on_change(mock_update, mock_context)
+        comp.parent_screen = mock_screen
+        await comp.call_on_change()
         # Should not raise
 
     def _make_component(self, callback_data="test_callback", component_id=None, on_change=None):
         class TestComp(Component):
-            async def handle_callback(self, update, context):
+            async def handle_callback(self):
                 return True
-            def render(self, update, context):
+            def render(self):
                 from telegram import InlineKeyboardButton
                 return InlineKeyboardButton("test", callback_data=self.callback_data)
         

@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 
 from telegram import Update
-from telegram.ext import ContextTypes
 
 from .component import Component, MessageHandlingComponent
 
@@ -33,29 +32,29 @@ class ComponentRegistry:
     def active_message_component(self) -> MessageHandlingComponent | None:
         return self._active_message_component
 
-    def add_component(self, comp: Component):
+    def add_component(self, comp: Component) -> None:
         self._components.append(comp)
         self._register_component(comp)
 
-    def add_components(self, comps: list[Component]):
+    def add_components(self, comps: list[Component]) -> None:
         for comp in comps:
             self.add_component(comp)
 
-    def delete_component(self, comp: Component):
+    def delete_component(self, comp: Component) -> None:
         self._components.remove(comp)
         self._unregister_component(comp)
 
-    def _register_component(self, comp: Component):
+    def _register_component(self, comp: Component) -> None:
         self._callback_map[comp.callback_data] = comp
         comp.parent_screen = self._parent_screen
         if isinstance(comp, MessageHandlingComponent):
             self._message_components.append(comp)
 
-    def clear_active_message_component(self, component: MessageHandlingComponent):
+    def clear_active_message_component(self, component: MessageHandlingComponent) -> None:
         if self._active_message_component is component:
             self._active_message_component = None
 
-    def _unregister_component(self, comp: Component):
+    def _unregister_component(self, comp: Component) -> None:
         mapped = self._callback_map.get(comp.callback_data)
         if mapped is comp:
             del self._callback_map[comp.callback_data]
@@ -64,22 +63,21 @@ class ComponentRegistry:
                 self._active_message_component = None
             self._message_components.remove(comp)
 
-    async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    async def dispatcher(self, update: Update) -> bool:
         query = update.callback_query
         if query is not None and query.data is not None:
             component = self._callback_map.get(query.data)
             if component is not None:
-                return await component.handle_callback(update, context)
+                return await component.handle_callback()
         return False
 
-    async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    async def message_dispatcher(self, update: Update) -> bool:
         message = update.message
         if message is not None and self._active_message_component is not None:
-            return await self._active_message_component.handle_message(update, context)
+            return await self._active_message_component.handle_message()
         return False
 
-    async def set_focus(self, focused_component: MessageHandlingComponent | None, update: Update,
-                        context: ContextTypes.DEFAULT_TYPE):
+    async def set_focus(self, focused_component: MessageHandlingComponent | None) -> None:
         if self._active_message_component is not None and self._active_message_component is not focused_component:
-            await self._active_message_component.deactivate(update, context)
+            await self._active_message_component.deactivate()
         self._active_message_component = focused_component

@@ -24,113 +24,124 @@ class TestCheckBox:
         cb.text = "New"
         assert cb.text == "New"
 
-    def test_render_unchecked(self, mock_update, mock_context):
+    def test_render_unchecked(self, mock_screen):
         """render() should show unchecked state"""
         cb = CheckBox(text="Option", selected=False)
-        result = cb.render(mock_update, mock_context)
+        cb.parent_screen = mock_screen
+        result = cb.render()
 
         assert isinstance(result, InlineKeyboardButton)
         assert result.text == "Option"
         assert result.callback_data == cb.callback_data
 
-    def test_render_checked(self, mock_update, mock_context):
+    def test_render_checked(self, mock_screen):
         """render() should show checked state with checkmark"""
         cb = CheckBox(text="Option", selected=True)
-        result = cb.render(mock_update, mock_context)
+        cb.parent_screen = mock_screen
+        result = cb.render()
 
         assert isinstance(result, InlineKeyboardButton)
         assert result.text == "✓ Option"
 
     @pytest.mark.asyncio
-    async def test_handle_callback_mismatch_returns_false(self, mock_update, mock_context):
+    async def test_handle_callback_mismatch_returns_false(self, mock_screen):
         """handle_callback should return False when callback_data doesn't match"""
         cb = CheckBox(text="Test", callback_data="correct")
-        mock_update.callback_query.data = "wrong"
-        result = await cb.handle_callback(mock_update, mock_context)
+        cb.parent_screen = mock_screen
+        mock_screen.update.callback_query.data = "wrong"
+        result = await cb.handle_callback()
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_handle_callback_match_toggles(self, mock_update, mock_context):
+    async def test_handle_callback_match_toggles(self, mock_screen):
         """handle_callback should toggle the checkbox when callback_data matches"""
         cb = CheckBox(text="Test", callback_data="match")
+        cb.parent_screen = mock_screen
+
         assert cb.selected is False
 
-        mock_update.callback_query.data = "match"
-        result = await cb.handle_callback(mock_update, mock_context)
+        mock_screen.update.callback_query.data = "match"
+        result = await cb.handle_callback()
 
         assert result is True
         assert cb.selected is True
 
     @pytest.mark.asyncio
-    async def test_check_changes_state(self, mock_update, mock_context):
+    async def test_check_changes_state(self, mock_screen):
         """check() should set selected to True"""
         cb = CheckBox(text="Test")
+        cb.parent_screen = mock_screen
         assert cb.selected is False
 
-        await cb.check(mock_update, mock_context)
+        await cb.check()
         assert cb.selected is True
 
     @pytest.mark.asyncio
-    async def test_uncheck_changes_state(self, mock_update, mock_context):
+    async def test_uncheck_changes_state(self, mock_screen):
         """uncheck() should set selected to False"""
         cb = CheckBox(text="Test", selected=True)
+        cb.parent_screen = mock_screen
         assert cb.selected is True
 
-        await cb.uncheck(mock_update, mock_context)
+        await cb.uncheck()
         assert cb.selected is False
 
     @pytest.mark.asyncio
-    async def test_toggle_changes_state(self, mock_update, mock_context):
+    async def test_toggle_changes_state(self, mock_screen):
         """toggle() should flip selected state"""
         cb = CheckBox(text="Test")
+        cb.parent_screen = mock_screen
         assert cb.selected is False
 
-        await cb.toggle(mock_update, mock_context)
+        await cb.toggle()
         assert cb.selected is True
 
-        await cb.toggle(mock_update, mock_context)
+        await cb.toggle()
         assert cb.selected is False
 
     @pytest.mark.asyncio
-    async def test_check_triggers_on_change_without_group(self, mock_update, mock_context):
+    async def test_check_triggers_on_change_without_group(self, mock_screen):
         """check() should trigger on_change handler even without a group"""
         handler_called = False
 
-        async def handler(update, context, component):
+        async def handler():
             nonlocal handler_called
             handler_called = True
 
         cb = CheckBox(text="Test", on_change=handler)
-        await cb.check(mock_update, mock_context)
+        cb.parent_screen = mock_screen
+        await cb.check()
 
         assert handler_called is True
 
     @pytest.mark.asyncio
-    async def test_check_triggers_on_change_with_group(self, mock_update, mock_context):
+    async def test_check_triggers_on_change_with_group(self, mock_screen):
         """check() should trigger on_change handler when part of a group"""
         handler_called = False
 
-        async def handler(update, context, component):
+        async def handler():
             nonlocal handler_called
             handler_called = True
 
         group = ExclusiveCheckBoxGroup()
         cb = CheckBox(text="Test", on_change=handler, group=group)
-        await cb.check(mock_update, mock_context)
+        cb.parent_screen = mock_screen
+        await cb.check()
 
         assert handler_called is True
 
     @pytest.mark.asyncio
-    async def test_no_duplicate_on_change_when_already_checked(self, mock_update, mock_context):
+    async def test_no_duplicate_on_change_when_already_checked(self, mock_screen):
         """check() should not trigger on_change if already selected"""
         handler_calls = 0
 
-        async def handler(update, context, component):
+        async def handler():
             nonlocal handler_calls
             handler_calls += 1
 
         cb = CheckBox(text="Test", selected=True, on_change=handler)
-        await cb.check(mock_update, mock_context)
+        cb.parent_screen = mock_screen
+        await cb.check()
 
         assert handler_calls == 0
 
