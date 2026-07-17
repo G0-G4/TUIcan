@@ -16,10 +16,10 @@ from .state_store import InMemoryStateStore, StateStore
 Middleware = Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, bool]]
 
 
-def get_user_id(update: Update):
-    if update.message is not None:
+def get_user_id(update: Update) -> int:
+    if update.message is not None and update.message.from_user is not None:
         return update.message.from_user.id
-    elif update.callback_query is not None:
+    elif update.callback_query is not None and update.callback_query.from_user is not None:
         return update.callback_query.from_user.id
     raise RuntimeError("no user id")
 
@@ -27,15 +27,15 @@ def get_user_id(update: Update):
 class Application:
     def __init__(self, token: str, screens: dict[str, StartScreenProtocol], state_store: StateStore | None = None):
         self._app_builder = ApplicationBuilder().token(token)
-        self._app = None
+        self._app: TgApplication | None = None
         self._user_screens: dict[tuple[str, int], Screen] = dict()
         self._screen_factories = screens
         self._user_commands: dict[int, str] = {}
         self._backend = PythonTelegramBotBackend()
         self._state_store = state_store or InMemoryStateStore()
         self._middlewares: list[Middleware] = []
-        self._post_init = None
-        self._post_shutdown = None
+        self._post_init: Callable[[TgApplication], Coroutine[Any, Any, None]] | None = None
+        self._post_shutdown: Callable[[TgApplication], Coroutine[Any, Any, None]] | None = None
 
     def _build(self):
         async def wrapper(application: TgApplication):
@@ -60,10 +60,12 @@ class Application:
 
     def run(self):
         self._build()
+        assert self._app is not None
         self._app.run_polling(allowed_updates=Update.ALL_TYPES)
 
     def run_webhook(self, webhook_url: str, listen: str = "0.0.0.0", port: int = 8080, **kwargs):
         self._build()
+        assert self._app is not None
         self._app.run_webhook(
             webhook_url=webhook_url,
             listen=listen,
@@ -99,7 +101,10 @@ class Application:
         if not await self._run_middlewares(update, context):
             return
         await self.remove_current_screen(update)
-        command_args = update.message.text.replace('/', '').split(' ')
+        message = update.message
+        if message is None or message.text is None:
+            return
+        command_args = message.text.replace('/', '').split(' ')
         await self._set_user_command(update, command_args[0])
         screen = await self.get_or_create_screen(update, context, command_args)
         screen.clear_update()
@@ -121,7 +126,10 @@ class Application:
         screen = await self.get_or_create_screen(update, context)
         try:
             if await screen.message_dispatcher(update, context):
-                message_id_to_delete = update.message.id
+                message = update.message
+                if message is None:
+                    return
+                message_id_to_delete = message.id
                 await screen.display(update, context)
                 await self._backend.delete_message(update, context, message_id_to_delete)
         except ValidationError as e:
@@ -136,9 +144,10 @@ class Application:
             logging.getLogger(__name__).info("command is empty. possible press on button after restart. start will be shown")
             command = 'start'
             await self._set_user_command(update, command)
+        assert command is not None
         user_id = get_user_id(update)
         factory = self._screen_factories[command]
-        key = (command, user_id)
+        key: tuple[str, int] = (command, user_id)
         screen = self._user_screens.get(key, factory())
         screen.backend = self._backend
         if key not in self._user_screens:

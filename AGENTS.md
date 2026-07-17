@@ -80,6 +80,13 @@ src/tuican/
     hline.py
 ```
 
+## Type Checking
+
+- Project uses **mypy** for static type analysis.
+- Run with: `/Users/g.grishenkov/projects/TUIcan/.venv/bin/python -m mypy src/tuican/ --show-error-codes`
+- Config is in `pyproject.toml` under `[tool.mypy]`. We keep it practical: catches real type bugs without forcing annotations on every function.
+- **Never** suppress type errors (`as any`, `@ts-ignore`). If a type error is hard to fix, refactor the code instead.
+
 ## Testing
 
 - Run with: `/Users/g.grishenkov/projects/TUIcan/.venv/bin/python -m pytest tests/ -v`

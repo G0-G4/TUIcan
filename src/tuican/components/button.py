@@ -8,7 +8,7 @@ class Button(Component):
     def __init__(
             self,
             text: str = "",
-            component_id: str = None,
+            component_id: str | None = None,
             callback_data: str | None = None,
             on_change: CallBack | None = None):
         super().__init__(component_id, callback_data, on_change)
@@ -19,7 +19,8 @@ class Button(Component):
             await self.call_on_change(update, context)
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        if update.callback_query.data != self.callback_data:
+        query = update.callback_query
+        if query is None or query.data is None or query.data != self.callback_data:
             return False
         await self.click(update, context)
         return True

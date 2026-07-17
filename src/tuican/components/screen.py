@@ -66,7 +66,7 @@ class ComponentRegistry:
 
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         query = update.callback_query
-        if query is not None:
+        if query is not None and query.data is not None:
             component = self._callback_map.get(query.data)
             if component is not None:
                 return await component.handle_callback(update, context)
@@ -88,9 +88,9 @@ class ComponentRegistry:
 class Screen(ABC):
     description: ClassVar[str | None] = None
 
-    def __init__(self, components: list[Component], message: str = None, backend: MessageBackend | None = None):
+    def __init__(self, components: list[Component], message: str | None = None, backend: MessageBackend | None = None):
         self._message = message
-        self._update_to_display_on = None
+        self._update_to_display_on: Update | None = None
         self._backend = backend
         self._registry = ComponentRegistry(components, parent_screen=self)
 
@@ -119,7 +119,7 @@ class Screen(ABC):
         self._backend = backend
 
     @property
-    def message(self) -> str:
+    def message(self) -> str | None:
         return self._message
 
     @message.setter
@@ -140,7 +140,7 @@ class Screen(ABC):
             ]
             for row in raw_layout
         ]
-        await self._send_or_update_message(update, context, self._message, layout)
+        await self._send_or_update_message(update, context, self._message or "", layout)
 
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         return await self._registry.dispatcher(update, context)
@@ -168,21 +168,21 @@ class Screen(ABC):
                                       keyboard_markup: Sequence[Sequence[InlineKeyboardButton]]):
         if update.callback_query is not None:
             self._update_to_display_on = update
-        update = self._update_to_display_on if self._update_to_display_on is not None else update
+        target_update = self._update_to_display_on if self._update_to_display_on is not None else update
         if self._backend is not None:
-            await self._backend.send_keyboard_message(update, context, text, keyboard_markup)
+            await self._backend.send_keyboard_message(target_update, context, text, keyboard_markup)
             return
         from telegram import InlineKeyboardMarkup
         from telegram.error import BadRequest
         try:
-            if update.message:
-                await update.message.reply_text(
+            if target_update.message:
+                await target_update.message.reply_text(
                     text=text,
                     reply_markup=InlineKeyboardMarkup(keyboard_markup),
                     parse_mode="HTML"
                 )
-            elif update.callback_query:
-                await update.callback_query.edit_message_text(
+            elif target_update.callback_query:
+                await target_update.callback_query.edit_message_text(
                     text=text,
                     reply_markup=InlineKeyboardMarkup(keyboard_markup),
                     parse_mode="HTML"
@@ -203,6 +203,8 @@ class Screen(ABC):
         if self._backend is not None:
             await self._backend.send_plain_message(update, context, text)
             return
+        if update.effective_chat is None:
+            return
         chat_id = update.effective_chat.id
         await context.bot.send_message(chat_id=chat_id, text=text)
 
@@ -214,7 +216,11 @@ class ScreenGroup(Screen):
         self._home = home_screen
         self._screen_stack: list[Screen] = [home_screen]
 
-    @Screen.backend.setter
+    @property
+    def backend(self) -> MessageBackend | None:
+        return self._backend
+
+    @backend.setter
     def backend(self, backend: MessageBackend | None):
         self._backend = backend
         for screen in self._screen_stack:
@@ -250,11 +256,11 @@ class ScreenGroup(Screen):
         self._screen_stack[-1]._update_to_display_on = None
 
     @property
-    def message(self) -> str:
+    def message(self) -> str | None:
         return self._screen_stack[-1].message
 
     @message.setter
-    def message(self, message):
+    def message(self, message: str | None) -> None:
         self._screen_stack[-1].message = message
 
     async def command_handler(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE):

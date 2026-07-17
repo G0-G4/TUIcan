@@ -9,7 +9,7 @@ class CheckBox(Component):
             self,
             text: str = "",
             selected: bool = False,
-            component_id: str = None,
+            component_id: str | None = None,
             callback_data: str | None = None,
             on_change: CallBack | None = None,
             group: "ExclusiveCheckBoxGroup | None" = None):
@@ -37,7 +37,8 @@ class CheckBox(Component):
         await self.call_on_change(update, context)
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        if update.callback_query.data != self.callback_data:
+        query = update.callback_query
+        if query is None or query.data is None or query.data != self.callback_data:
             return False
         await self.toggle(update, context)
         return True

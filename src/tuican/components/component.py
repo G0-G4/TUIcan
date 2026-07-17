@@ -12,8 +12,8 @@ CallBack = Callable[[Update, ContextTypes.DEFAULT_TYPE, "Component"], None] | Ca
 class Component(ABC):
     def __init__(
             self,
-            component_id: str = None,
-            callback_data: str = None,
+            component_id: str | None = None,
+            callback_data: str | None = None,
             on_change: CallBack | None = None,
             hidden: bool = False,
             data: Any = None):
@@ -77,4 +77,8 @@ class Component(ABC):
 class MessageHandlingComponent(Component, ABC):
     @abstractmethod
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def deactivate(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         raise NotImplementedError

@@ -3,21 +3,21 @@ from ..errors import ValidationError
 
 def positive_int(number: str) -> int:
     try:
-        number = int(number)
+        parsed = int(number)
     except ValueError:
         raise ValidationError("введено не число")
-    if number < 0:
+    if parsed < 0:
         raise ValidationError("число должно быть больше 0")
-    return number
+    return parsed
 
 def positive_float(number: str) -> float:
     try:
-        number = float(number)
+        parsed = float(number)
     except ValueError:
         raise ValidationError("введено не число")
-    if number < 0:
+    if parsed < 0:
         raise ValidationError("число должно быть больше 0")
-    return number
+    return parsed
 
 def any_float(number: str) -> float:
     try:

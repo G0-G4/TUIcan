@@ -86,6 +86,8 @@ class PythonTelegramBotBackend:
         context: ContextTypes.DEFAULT_TYPE,
         text: str,
     ) -> None:
+        if update.effective_chat is None:
+            return
         chat_id = update.effective_chat.id
         await context.bot.send_message(chat_id=chat_id, text=text)
 
@@ -95,6 +97,8 @@ class PythonTelegramBotBackend:
         context: ContextTypes.DEFAULT_TYPE,
         message_id: int,
     ) -> None:
+        if update.effective_chat is None:
+            return
         chat_id = update.effective_chat.id
         await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
 

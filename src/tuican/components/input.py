@@ -58,7 +58,8 @@ class Input[T](MessageHandlingComponent):
         return True
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        if update.callback_query.data != self.callback_data:
+        query = update.callback_query
+        if query is None or query.data is None or query.data != self.callback_data:
             return False
         await self.toggle(update, context)
         return True
@@ -92,9 +93,7 @@ class Input[T](MessageHandlingComponent):
             self.parent_screen.clear_active_message_component(self)
         await self.call_on_change(update, context)
 
-    def validate_input(self, text: str):
-        if not self._validation_function:
-            return text
+    def validate_input(self, text: str) -> T:
         return self._validation_function(text)
 
     @property
@@ -103,18 +102,18 @@ class Input[T](MessageHandlingComponent):
         return self._value
 
     @value.setter
-    def value(self, value: T) -> T | None:
-        """Get the current input value"""
+    def value(self, value: T | None) -> None:
+        """Set the current input value"""
         self._value = value
 
     @property
-    def text(self) -> str | None:
-        """Get the current input value"""
+    def text(self) -> str:
+        """Get the current input text"""
         return self._text
 
     @text.setter
-    def text(self, text) -> str | None:
-        """Get the current input value"""
+    def text(self, text: str) -> None:
+        """Set the current input text"""
         self._text = text
 
     @property
