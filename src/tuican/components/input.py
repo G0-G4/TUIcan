@@ -11,7 +11,7 @@ class Input[T](MessageHandlingComponent):
                  text: str = "",
                  value: T | None = None,
                  component_id: str | None = None,
-                 callback_data: str = "",
+                 callback_data: str | None = None,
                  on_change: CallBack | None = None,
                  active_prompt: str = "Enter: "):
         """

@@ -5,9 +5,26 @@ from telegram import Update
 from telegram.ext import Application as TgApplication, ApplicationBuilder, ContextTypes
 
 from tuican.application import Application, get_user_id
+from tuican.backend import MessageBackend, PythonTelegramBotBackend
 from tuican.components import Screen
 from tuican.errors import UserNotFoundError, ValidationError
 from tuican.stores import InMemoryStateStore
+
+
+class MyBackend:
+    """Custom backend for testing injection."""
+
+    async def send_keyboard_message(self, update, context, text, keyboard_markup, parse_mode="HTML") -> None:
+        pass
+
+    async def send_plain_message(self, update, context, text) -> None:
+        pass
+
+    async def delete_message(self, update, context, message_id) -> None:
+        pass
+
+    async def set_bot_commands(self, update, context, commands) -> None:
+        pass
 
 
 class DummyScreen(Screen):
@@ -39,6 +56,24 @@ class StartScreen(Screen):
         await self.display(update, context)
 
     async def command_handler(self, args, update, context):
+        pass
+
+
+class OnStartScreen(Screen):
+    description = "on_start screen"
+
+    def __init__(self):
+        super().__init__([], message="on_start")
+        self.on_start_called = False
+
+    def get_layout(self):
+        return []
+
+    async def on_start(self, update, context):
+        self.on_start_called = True
+        await self.display(update, context)
+
+    async def on_command(self, args, update, context):
         pass
 
 
@@ -171,6 +206,15 @@ class TestCommandHandler:
         await app.command_handler(mock_update_message, mock_context)
         assert app._user_commands[123] == "start"
         assert ("start", 123) in app._user_screens
+
+    @pytest.mark.asyncio
+    async def test_on_start_override_called(self, mock_update_message, mock_context):
+        app = Application("fake-token", {"start": OnStartScreen})
+        app._backend = AsyncMock()
+        await app.command_handler(mock_update_message, mock_context)
+        screen = app._user_screens[("start", 123)]
+        assert isinstance(screen, OnStartScreen)
+        assert screen.on_start_called is True
 
     @pytest.mark.asyncio
     async def test_split_fix_multiple_args(self, app, mock_update_message, mock_context):
@@ -449,3 +493,73 @@ class TestBuild:
         mock_app.add_handler.assert_called()
         calls = [call.args for call in mock_app.add_handler.call_args_list]
         assert len(calls) == 3
+
+    def test_build_is_idempotent(self, app):
+        mock_app = MagicMock(spec=TgApplication)
+        mock_builder = MagicMock()
+        mock_builder.build.return_value = mock_app
+        mock_builder.post_init.return_value = mock_builder
+        mock_builder.proxy.return_value = mock_builder
+        app._app_builder = mock_builder
+
+        app._build()
+        first_app = app._app
+        first_call_count = mock_app.add_handler.call_count
+
+        app._build()
+
+        assert app._app is first_app
+        assert mock_app.add_handler.call_count == first_call_count
+
+    def test_run_then_run_webhook_does_not_duplicate_handlers(self, app):
+        mock_app = MagicMock(spec=TgApplication)
+        mock_builder = MagicMock()
+        mock_builder.build.return_value = mock_app
+        mock_builder.post_init.return_value = mock_builder
+        mock_builder.proxy.return_value = mock_builder
+        app._app_builder = mock_builder
+
+        app.run()
+        app.run_webhook("https://example.com/webhook")
+
+        assert mock_app.add_handler.call_count == 3
+
+    def test_built_flag_set_after_build(self, app):
+        assert app._built is False
+        mock_app = MagicMock(spec=TgApplication)
+        mock_builder = MagicMock()
+        mock_builder.build.return_value = mock_app
+        mock_builder.post_init.return_value = mock_builder
+        mock_builder.proxy.return_value = mock_builder
+        app._app_builder = mock_builder
+
+        app._build()
+        assert app._built is True
+
+
+class TestBackendParameter:
+    def test_custom_backend_injection(self):
+        custom = MyBackend()
+        app = Application("fake-token", {"start": StartScreen}, backend=custom)
+        assert isinstance(app.backend, MyBackend)
+        assert app.backend is custom
+
+    def test_default_backend_is_python_telegram_bot(self):
+        app = Application("fake-token", {"start": StartScreen})
+        assert isinstance(app.backend, PythonTelegramBotBackend)
+
+    @pytest.mark.asyncio
+    async def test_get_or_create_screen_uses_injected_backend(self, mock_update_message, mock_context):
+        custom = MyBackend()
+        app = Application("fake-token", {"start": StartScreen}, backend=custom)
+        app._user_commands[123] = "start"
+        screen = await app.get_or_create_screen(mock_update_message, mock_context)
+        assert screen.backend is custom
+
+    @pytest.mark.asyncio
+    async def test_command_handler_injects_custom_backend(self, mock_update_message, mock_context):
+        custom = MyBackend()
+        app = Application("fake-token", {"start": StartScreen}, backend=custom)
+        await app.command_handler(mock_update_message, mock_context)
+        screen = app._user_screens[("start", 123)]
+        assert screen.backend is custom

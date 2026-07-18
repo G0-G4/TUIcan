@@ -7,7 +7,7 @@ from telegram.ext import Application as TgApplication, ApplicationBuilder, Callb
     CommandHandler, ContextTypes, \
     MessageHandler, filters
 
-from .backend import PythonTelegramBotBackend
+from .backend import MessageBackend, PythonTelegramBotBackend
 from .components import Screen
 from .components.screen import StartScreenProtocol
 from .errors import UserNotFoundError, ValidationError
@@ -26,7 +26,7 @@ def get_user_id(update: Update) -> int:
 
 
 class Application:
-    def __init__(self, token: str, screens: dict[str, StartScreenProtocol], state_store: StateStore | None = None):
+    def __init__(self, token: str, screens: dict[str, StartScreenProtocol], state_store: StateStore | None = None, backend: MessageBackend | None = None):
         self._app_builder = ApplicationBuilder().token(token)
         self._app: TgApplication | None = None
         self._user_screens: dict[tuple[str, int], Screen] = {}
@@ -34,13 +34,20 @@ class Application:
         self._screen_factories = screens
         self._user_commands: dict[int, str] = {}
         self._max_user_commands = 10_000
-        self._backend = PythonTelegramBotBackend()
+        self._backend = backend or PythonTelegramBotBackend()
         self._state_store = state_store or InMemoryStateStore()
         self._middlewares: list[Middleware] = []
         self._post_init: Callable[[TgApplication], Coroutine[Any, Any, None]] | None = None
         self._post_shutdown: Callable[[TgApplication], Coroutine[Any, Any, None]] | None = None
+        self._built: bool = False
+
+    @property
+    def backend(self) -> MessageBackend:
+        return self._backend
 
     def _build(self):
+        if self._built:
+            return
         async def wrapper(application: TgApplication):
             loaded = await self._state_store.load_all()
             self._user_commands.update({int(k): v for k, v in loaded.items()})
@@ -60,6 +67,7 @@ class Application:
         self._app.add_handler(CommandHandler(self._screen_factories.keys(), self.command_handler))
         self._app.add_handler(CallbackQueryHandler(self.dispatcher, pattern=".*"))
         self._app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.message_dispatcher))
+        self._built = True
 
     def run(self):
         self._build()
@@ -112,7 +120,7 @@ class Application:
             await self._set_user_command(update, command_args[0])
             screen = await self.get_or_create_screen(update, context, command_args)
             screen.clear_update()
-            await screen.start_handler(update, context)
+            await screen.on_start(update, context)
         except (UserNotFoundError, KeyError) as e:
             logging.getLogger(__name__).warning("Bad update in command_handler: %s", e)
 
@@ -169,7 +177,7 @@ class Application:
         if key not in self._user_screens:
             self._user_screens[key] = screen
             self._enforce_limits()
-            await screen.command_handler(args if args is not None else [], update, context)
+            await screen.on_command(args if args is not None else [], update, context)
         if not_initiated:
             await screen.display(update, context)
         return screen

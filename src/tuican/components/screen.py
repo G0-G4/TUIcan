@@ -121,6 +121,9 @@ class Screen(ABC):
     def delete_component(self, comp: Component) -> None:
         self._registry.delete_component(comp)
 
+    def delete_components(self, comps: list[Component]) -> None:
+        self._registry.delete_components(comps)
+
     def clear_active_message_component(self, component: MessageHandlingComponent) -> None:
         self._registry.clear_active_message_component(component)
 
@@ -165,14 +168,18 @@ class Screen(ABC):
         except BadRequest as e:
             logging.getLogger(__name__).debug(f"No modifications needed: {e.message}")
 
-    async def start_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def on_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await self.display(update, context)
+
+    start_handler = on_start
 
     def clear_update(self) -> None:
         self._update_to_display_on = None
 
-    async def command_handler(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def on_command(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         ...
+
+    command_handler = on_command
 
     async def send_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str) -> None:
         if self._backend is not None:
@@ -232,7 +239,7 @@ class ScreenGroup(Screen):
         return await self._screen_stack[-1].display(update, context)
 
     def clear_update(self) -> None:
-        self._screen_stack[-1]._update_to_display_on = None
+        self._screen_stack[-1].clear_update()
 
     @property
     def message(self) -> str | None:
@@ -242,8 +249,10 @@ class ScreenGroup(Screen):
     def message(self, message: str | None) -> None:
         self._screen_stack[-1].message = message
 
-    async def command_handler(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await self._home.command_handler(args, update, context)
+    async def on_command(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        await self._home.on_command(args, update, context)
+
+    command_handler = on_command
 
 
 class StartScreenProtocol(Protocol):

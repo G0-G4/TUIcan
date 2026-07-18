@@ -145,6 +145,55 @@ class TestCheckBox:
 
         assert handler_calls == 0
 
+    def test_selected_setter(self):
+        """selected setter should update internal state directly"""
+        cb = CheckBox(text="x")
+        assert cb.selected is False
+        cb.selected = True
+        assert cb.selected is True
+        cb.selected = False
+        assert cb.selected is False
+
+    def test_selected_setter_does_not_fire_on_change(self, mock_screen):
+        """selected setter must NOT invoke on_change callback"""
+        from unittest.mock import AsyncMock
+        handler = AsyncMock()
+        cb = CheckBox(text="x", on_change=handler)
+        cb.parent_screen = mock_screen
+        cb.selected = True
+        handler.assert_not_called()
+        cb.selected = False
+        handler.assert_not_called()
+
+    def test_selected_setter_does_not_maintain_group_exclusivity(self):
+        """selected setter bypasses group exclusivity invariants.
+
+        This is intentional low-level access. Using the setter on a
+        checkbox inside an ExclusiveCheckBoxGroup may leave multiple
+        boxes selected because the setter does not notify the group.
+        Prefer check()/uncheck()/toggle() for normal use.
+        """
+        group = ExclusiveCheckBoxGroup()
+        cb1 = CheckBox(text="1", group=group)
+        cb2 = CheckBox(text="2", group=group)
+
+        cb1.selected = True
+        cb2.selected = True
+
+        assert cb1.selected is True
+        assert cb2.selected is True
+        assert group.get_selected() == cb1
+
+    @pytest.mark.asyncio
+    async def test_check_still_fires_on_change_regression(self, mock_screen):
+        """await cb.check() must continue to trigger on_change (regression guard)"""
+        from unittest.mock import AsyncMock
+        handler = AsyncMock()
+        cb = CheckBox(text="x", on_change=handler)
+        cb.parent_screen = mock_screen
+        await cb.check()
+        handler.assert_awaited_once()
+
 
 class TestExclusiveCheckBoxGroup:
     def test_add_checkbox(self):

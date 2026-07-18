@@ -215,3 +215,33 @@ class TestComponentRegistry:
         registry._active_message_component = msg1
         registry.clear_active_message_component(msg2)
         assert registry.active_message_component is msg1
+
+    def test_delete_components_removes_from_callback_map_and_message_components(self, mock_screen):
+        from tuican.components.button import Button
+        from tuican.components.checkbox import CheckBox
+        from tuican.components.input import Input
+
+        btn = Button(text="btn", callback_data="btn_cb")
+        chk = CheckBox(text="chk", callback_data="chk_cb")
+        inp = Input[str](validation_function=lambda x: x, text="inp", callback_data="inp_cb")
+        registry = ComponentRegistry([btn, chk, inp], parent_screen=mock_screen)
+        registry.delete_components([btn, inp])
+        assert btn not in registry.components
+        assert inp not in registry.components
+        assert chk in registry.components
+        assert "btn_cb" not in registry.callback_map
+        assert "inp_cb" not in registry.callback_map
+        assert "chk_cb" in registry.callback_map
+        assert inp not in registry._message_components
+
+    def test_delete_components_clears_active_message_component(self, mock_screen):
+        from tuican.components.input import Input
+
+        inp1 = Input[str](validation_function=lambda x: x, text="inp1", callback_data="inp1_cb")
+        inp2 = Input[str](validation_function=lambda x: x, text="inp2", callback_data="inp2_cb")
+        registry = ComponentRegistry([inp1, inp2], parent_screen=mock_screen)
+        registry._active_message_component = inp1
+        registry.delete_components([inp1])
+        assert registry.active_message_component is None
+        assert inp1 not in registry._message_components
+        assert inp2 in registry._message_components

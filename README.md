@@ -37,8 +37,8 @@ import os
 
 from dotenv import load_dotenv
 
-from src.tuican.application import Application
-from src.tuican.components import Button, Screen
+from tuican import Application
+from tuican.components import Button, Screen
 
 class MyScreen(Screen):
     description = 'main screen'
@@ -49,7 +49,7 @@ class MyScreen(Screen):
     def handle_click(self, update, context, component):
         self.message = "Hello world!"
 
-    async def get_layout(self, update, context):
+    def get_layout(self):
         return [[self.button]]  # declarative: no manual render() needed
 
 load_dotenv()
@@ -66,12 +66,27 @@ Basic interactive button with click handler:
 Button(text="Click me", on_change=callback_function)
 ```
 
+### Label
+Non-interactive text label (renders as a disabled button):
+```python
+Label(text="Status: active")
+```
+
+### HLine
+Horizontal separator line:
+```python
+HLine()  # renders as a divider row
+```
+> The `Hline` alias (lowercase *l*) still works for backward compatibility.
+
 ### CheckBox
 Toggleable checkbox with group support:
 ```python
 group = ExclusiveCheckBoxGroup()
 CheckBox(text="Option 1", group=group)
 ```
+
+> **Note:** Setting `checkbox.selected = True` is a silent low-level override that does **not** fire `on_change` and does **not** maintain `ExclusiveCheckBoxGroup` invariants. Use `check()` / `uncheck()` / `toggle()` for side-effectful state changes.
 
 ### Input
 Validated input field with configurable prompt:
@@ -84,7 +99,7 @@ Input[int](
 ```
 
 ### Screen Management
-- `Screen`: Base container for components
+- `Screen`: Base container for components (supports `add_components()` and `delete_components()` for dynamic layouts)
 - `ScreenGroup`: Handles navigation between screens
 
 ## Declarative Layout
@@ -92,7 +107,7 @@ Input[int](
 `Screen.get_layout()` can return components directly. The library automatically calls `render()` for you:
 
 ```python
-async def get_layout(self, update, context):
+def get_layout(self):
     return [
         [self.btn1, self.btn2],           # row 1
         [self.checkbox],                  # row 2
@@ -126,7 +141,7 @@ Return `False` to stop processing the update.
 User command state is persisted automatically. By default an in-memory store is used (lost on restart). Use `JsonFileStateStore` to survive restarts:
 
 ```python
-from tuican.state_store import JsonFileStateStore
+from tuican.stores import JsonFileStateStore
 
 app = Application(
     token,
@@ -158,8 +173,7 @@ class MyBackend(MessageBackend):
     async def send_keyboard_message(self, update, context, text, keyboard_markup, parse_mode="HTML"):
         ...
 
-app = Application(token, screens)
-app._backend = MyBackend()
+app = Application(token, screens, backend=MyBackend())
 ```
 
 ## API Reference
@@ -167,7 +181,9 @@ app._backend = MyBackend()
 ### Application
 Main entry point:
 ```python
-Application(token, screens: dict[str, StartScreenProtocol], state_store=None)
+# Signature:
+# Application(token, screens: dict[str, StartScreenProtocol], state_store=None, backend=None)
+app = Application(token, screens, state_store=None, backend=None)
 ```
 
 ### Component

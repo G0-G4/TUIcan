@@ -243,3 +243,29 @@ class TestInput:
 
         await inp.activate()
         assert inp.active is True
+
+    def test_init_default_callback_data_int_type(self):
+        """Input[int] without callback_data should fallback to component_id"""
+        inp = Input[int](validation_function=int)
+        assert inp.callback_data == inp.component_id
+
+    def test_init_explicit_callback_data_int_type(self):
+        """Input[int] with explicit callback_data should use it"""
+        inp = Input[int](validation_function=int, callback_data="x")
+        assert inp.callback_data == "x"
+
+    def test_duplicate_callback_data_in_screen_raises(self):
+        """Two Inputs with same explicit callback_data in a Screen should raise ValueError"""
+        from tuican.components import Screen
+
+        class DupScreen(Screen):
+            def __init__(self):
+                self.inp1 = Input[int](validation_function=int, callback_data="dup")
+                self.inp2 = Input[int](validation_function=int, callback_data="dup")
+                super().__init__([self.inp1, self.inp2], message="test")
+
+            def get_layout(self):
+                return [[self.inp1], [self.inp2]]
+
+        with pytest.raises(ValueError, match="Duplicate callback_data"):
+            DupScreen()

@@ -64,6 +64,16 @@ class CheckBox(Component):
     def selected(self) -> bool:
         return self._selected
 
+    @selected.setter
+    def selected(self, value: bool) -> None:
+        """Low-level state override.
+
+        Does NOT fire on_change and does NOT maintain ExclusiveCheckBoxGroup
+        invariants. Use check()/uncheck()/toggle() for side-effectful state
+        changes.
+        """
+        self._selected = value
+
 
 class ExclusiveCheckBoxGroup:
     def __init__(self, checkboxes: list[CheckBox] | None = None, sticky: bool = False):

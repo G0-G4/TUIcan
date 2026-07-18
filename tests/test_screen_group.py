@@ -142,11 +142,29 @@ class TestScreenGroup:
         assert home_screen._update_to_display_on is None
 
     @pytest.mark.asyncio
-    async def test_command_handler_delegation(self, home_screen, mock_update, mock_context):
+    async def test_proxy_clear_update_delegates_to_top_screen(self, home_screen, new_screen, mock_update, mock_context):
         group = ScreenGroup(home_screen)
-        home_screen.command_handler = AsyncMock()
+        await group.go_to_screen(mock_update, mock_context, new_screen)
+        new_screen._update_to_display_on = MagicMock()
+        new_screen.clear_update = MagicMock()
+        group.clear_update()
+        new_screen.clear_update.assert_called_once()
+        # If the group had directly mutated the field, this would be None
+        assert new_screen._update_to_display_on is not None
+
+    @pytest.mark.asyncio
+    async def test_on_command_delegation(self, home_screen, mock_update, mock_context):
+        group = ScreenGroup(home_screen)
+        home_screen.on_command = AsyncMock()
+        await group.on_command(["arg"], mock_update, mock_context)
+        home_screen.on_command.assert_awaited_once_with(["arg"], mock_update, mock_context)
+
+    @pytest.mark.asyncio
+    async def test_command_handler_alias_delegation(self, home_screen, mock_update, mock_context):
+        group = ScreenGroup(home_screen)
+        home_screen.on_command = AsyncMock()
         await group.command_handler(["arg"], mock_update, mock_context)
-        home_screen.command_handler.assert_awaited_once_with(["arg"], mock_update, mock_context)
+        home_screen.on_command.assert_awaited_once_with(["arg"], mock_update, mock_context)
 
     @pytest.mark.asyncio
     async def test_go_to_screen_does_not_display(self, home_screen, new_screen, mock_update, mock_context):

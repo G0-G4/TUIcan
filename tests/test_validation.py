@@ -10,24 +10,36 @@ class TestPositiveInt:
         assert positive_int("1") == 1
 
     def test_zero_raises(self):
-        with pytest.raises(ValidationError, match="число должно быть больше 0"):
+        with pytest.raises(ValidationError, match="number must be greater than 0"):
             positive_int("0")
 
     def test_negative_raises(self):
-        with pytest.raises(ValidationError, match="число должно быть больше 0"):
+        with pytest.raises(ValidationError, match="number must be greater than 0"):
             positive_int("-5")
 
     def test_non_numeric_raises(self):
-        with pytest.raises(ValidationError, match="введено не число"):
+        with pytest.raises(ValidationError, match="not a number"):
             positive_int("abc")
 
     def test_float_string_raises(self):
-        with pytest.raises(ValidationError, match="введено не число"):
+        with pytest.raises(ValidationError, match="not a number"):
             positive_int("3.14")
 
     def test_empty_string_raises(self):
-        with pytest.raises(ValidationError, match="введено не число"):
+        with pytest.raises(ValidationError, match="not a number"):
             positive_int("")
+
+    def test_override_not_a_number_msg(self):
+        with pytest.raises(ValidationError, match="custom parse error"):
+            positive_int("abc", not_a_number_msg="custom parse error")
+
+    def test_override_must_be_positive_msg(self):
+        with pytest.raises(ValidationError, match="custom positive error"):
+            positive_int("-5", must_be_positive_msg="custom positive error")
+
+    def test_override_zero_msg(self):
+        with pytest.raises(ValidationError, match="custom positive error"):
+            positive_int("0", must_be_positive_msg="custom positive error")
 
 
 class TestPositiveFloat:
@@ -37,20 +49,32 @@ class TestPositiveFloat:
         assert positive_float("0.001") == 0.001
 
     def test_zero_raises(self):
-        with pytest.raises(ValidationError, match="число должно быть больше 0"):
+        with pytest.raises(ValidationError, match="number must be greater than 0"):
             positive_float("0.0")
 
     def test_negative_raises(self):
-        with pytest.raises(ValidationError, match="число должно быть больше 0"):
+        with pytest.raises(ValidationError, match="number must be greater than 0"):
             positive_float("-2.5")
 
     def test_non_numeric_raises(self):
-        with pytest.raises(ValidationError, match="введено не число"):
+        with pytest.raises(ValidationError, match="not a number"):
             positive_float("not_a_number")
 
     def test_empty_string_raises(self):
-        with pytest.raises(ValidationError, match="введено не число"):
+        with pytest.raises(ValidationError, match="not a number"):
             positive_float("")
+
+    def test_override_not_a_number_msg(self):
+        with pytest.raises(ValidationError, match="custom parse error"):
+            positive_float("abc", not_a_number_msg="custom parse error")
+
+    def test_override_must_be_positive_msg(self):
+        with pytest.raises(ValidationError, match="custom positive error"):
+            positive_float("-2.5", must_be_positive_msg="custom positive error")
+
+    def test_override_zero_msg(self):
+        with pytest.raises(ValidationError, match="custom positive error"):
+            positive_float("0.0", must_be_positive_msg="custom positive error")
 
 
 class TestAnyFloat:
@@ -64,12 +88,16 @@ class TestAnyFloat:
         assert any_float("0.0") == 0.0
 
     def test_non_numeric_raises(self):
-        with pytest.raises(ValidationError, match="введено не число"):
+        with pytest.raises(ValidationError, match="not a number"):
             any_float("hello")
 
     def test_empty_string_raises(self):
-        with pytest.raises(ValidationError, match="введено не число"):
+        with pytest.raises(ValidationError, match="not a number"):
             any_float("")
+
+    def test_override_not_a_number_msg(self):
+        with pytest.raises(ValidationError, match="custom parse error"):
+            any_float("abc", not_a_number_msg="custom parse error")
 
 
 class TestIdentity:

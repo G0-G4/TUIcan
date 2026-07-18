@@ -92,3 +92,50 @@ class TestScreenFocus:
 
         screen.input_a.deactivate.assert_not_awaited()
         screen.input_b.deactivate.assert_not_awaited()
+
+
+class TestScreenLifecycleMethods:
+    @pytest.mark.asyncio
+    async def test_on_start_exists_and_is_callable(self, mock_update, mock_context):
+        screen = TwoInputScreen()
+        assert hasattr(screen, "on_start")
+        assert callable(screen.on_start)
+        await screen.on_start(mock_update, mock_context)
+
+    def test_start_handler_is_alias_for_on_start(self):
+        assert Screen.start_handler is Screen.on_start
+
+    @pytest.mark.asyncio
+    async def test_on_command_exists_and_is_callable(self, mock_update, mock_context):
+        screen = TwoInputScreen()
+        assert hasattr(screen, "on_command")
+        assert callable(screen.on_command)
+        await screen.on_command([], mock_update, mock_context)
+
+    def test_command_handler_is_alias_for_on_command(self):
+        assert Screen.command_handler is Screen.on_command
+
+
+class TestScreenDeleteComponents:
+    def test_delete_components_reduces_components_list(self):
+        from tuican.components.button import Button
+        from tuican.components.checkbox import CheckBox
+        from tuican.components.input import Input
+
+        class ThreeCompScreen(Screen):
+            def __init__(self):
+                self.btn = Button(text="btn", callback_data="btn_cb")
+                self.chk = CheckBox(text="chk", callback_data="chk_cb")
+                self.inp = Input[str](validation_function=lambda x: x, text="inp", callback_data="inp_cb")
+                super().__init__([self.btn, self.chk, self.inp], message="test")
+
+            def get_layout(self):
+                return [[self.btn], [self.chk], [self.inp]]
+
+        screen = ThreeCompScreen()
+        screen.delete_components([screen.btn, screen.inp])
+        assert len(screen._components) == 1
+        assert screen._components[0] is screen.chk
+        assert "btn_cb" not in screen._callback_map
+        assert "inp_cb" not in screen._callback_map
+        assert "chk_cb" in screen._callback_map

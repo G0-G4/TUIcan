@@ -2,7 +2,7 @@ from ..keyboard_button import KeyboardButton
 from .component import Component
 
 
-class Hline(Component):
+class HLine(Component):
     async def handle_callback(self) -> bool:
         return False
 
@@ -11,3 +11,6 @@ class Hline(Component):
             text="───────────────",
             callback_data=self.callback_data
         )
+
+
+Hline = HLine  # backward-compat alias

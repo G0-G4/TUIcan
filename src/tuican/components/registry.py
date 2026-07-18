@@ -44,6 +44,10 @@ class ComponentRegistry:
         self._components.remove(comp)
         self._unregister_component(comp)
 
+    def delete_components(self, comps: list[Component]) -> None:
+        for comp in comps:
+            self.delete_component(comp)
+
     def _register_component(self, comp: Component) -> None:
         if comp.callback_data in self._callback_map:
             existing = self._callback_map[comp.callback_data]
