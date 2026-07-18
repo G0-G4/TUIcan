@@ -154,13 +154,6 @@ class TestScreenGroup:
         home_screen.on_command.assert_awaited_once_with(["arg"], mock_update)
 
     @pytest.mark.asyncio
-    async def test_command_handler_alias_delegation(self, home_screen, mock_update, backend):
-        group = ScreenGroup(home_screen, backend=backend)
-        home_screen.on_command = AsyncMock()
-        await group.command_handler(["arg"], mock_update)
-        home_screen.on_command.assert_awaited_once_with(["arg"], mock_update)
-
-    @pytest.mark.asyncio
     async def test_go_to_screen_does_not_display(self, home_screen, new_screen, mock_update, backend):
         group = ScreenGroup(home_screen, backend=backend)
         new_screen.display = AsyncMock()

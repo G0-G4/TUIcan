@@ -132,15 +132,11 @@ class Screen(ABC):
     async def on_start(self, update: TuicanUpdate) -> None:
         await self.display(update)
 
-    start_handler = on_start
-
     def clear_update(self) -> None:
         self._update_to_display_on = None
 
     async def on_command(self, args: list[str], update: TuicanUpdate) -> None:
         ...
-
-    command_handler = on_command
 
     async def send_message(self, update: TuicanUpdate, text: str) -> None:
         await self.backend.send_plain_message(update, text)
@@ -207,8 +203,6 @@ class ScreenGroup(Screen):
 
     async def on_command(self, args: list[str], update: TuicanUpdate) -> None:
         await self._home.on_command(args, update)
-
-    command_handler = on_command
 
 
 class StartScreenProtocol(Protocol):

@@ -104,18 +104,12 @@ class TestScreenLifecycleMethods:
         assert callable(screen.on_start)
         await screen.on_start(mock_update)
 
-    def test_start_handler_is_alias_for_on_start(self):
-        assert Screen.start_handler is Screen.on_start
-
     @pytest.mark.asyncio
     async def test_on_command_exists_and_is_callable(self, mock_update, backend):
         screen = TwoInputScreen(backend=backend)
         assert hasattr(screen, "on_command")
         assert callable(screen.on_command)
         await screen.on_command([], mock_update)
-
-    def test_command_handler_is_alias_for_on_command(self):
-        assert Screen.command_handler is Screen.on_command
 
 
 class TestScreenDeleteComponents:
