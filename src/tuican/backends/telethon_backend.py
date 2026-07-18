@@ -69,7 +69,7 @@ class TelethonBackend(MessageBackend):
                 await self._client.edit_message(
                     update.chat_id,
                     update.message_id,
-                    message=safe_text,
+                    text=safe_text,
                     buttons=buttons,
                     parse_mode="html",
                 )
