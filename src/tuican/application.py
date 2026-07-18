@@ -10,7 +10,7 @@ from telegram.ext import Application as TgApplication, ApplicationBuilder, Callb
 from .backend import PythonTelegramBotBackend
 from .components import Screen
 from .components.screen import StartScreenProtocol
-from .errors import ValidationError
+from .errors import UserNotFoundError, ValidationError
 from .state_store import StateStore
 from .stores import InMemoryStateStore
 
@@ -22,16 +22,18 @@ def get_user_id(update: Update) -> int:
         return update.message.from_user.id
     elif update.callback_query is not None and update.callback_query.from_user is not None:
         return update.callback_query.from_user.id
-    raise RuntimeError("no user id")
+    raise UserNotFoundError(update)
 
 
 class Application:
     def __init__(self, token: str, screens: dict[str, StartScreenProtocol], state_store: StateStore | None = None):
         self._app_builder = ApplicationBuilder().token(token)
         self._app: TgApplication | None = None
-        self._user_screens: dict[tuple[str, int], Screen] = dict()
+        self._user_screens: dict[tuple[str, int], Screen] = {}
+        self._max_user_screens = 10_000
         self._screen_factories = screens
         self._user_commands: dict[int, str] = {}
+        self._max_user_commands = 10_000
         self._backend = PythonTelegramBotBackend()
         self._state_store = state_store or InMemoryStateStore()
         self._middlewares: list[Middleware] = []
@@ -96,20 +98,23 @@ class Application:
 
     async def handle_exception(self, e: Exception, update: Update, context: ContextTypes.DEFAULT_TYPE):
         logging.getLogger(__name__).exception("Unhandled exception in update handler")
-        await self._backend.send_plain_message(update, context, str(e))
+        await self._backend.send_plain_message(update, context, "An unexpected error occurred. Please try again later.")
 
     async def command_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self._run_middlewares(update, context):
             return
-        await self.remove_current_screen(update)
-        message = update.message
-        if message is None or message.text is None:
-            return
-        command_args = message.text.replace('/', '').split(' ')
-        await self._set_user_command(update, command_args[0])
-        screen = await self.get_or_create_screen(update, context, command_args)
-        screen.clear_update()
-        await screen.start_handler(update, context)
+        try:
+            await self.remove_current_screen(update)
+            message = update.message
+            if message is None or message.text is None:
+                return
+            command_args = message.text.replace('/', '').split()
+            await self._set_user_command(update, command_args[0])
+            screen = await self.get_or_create_screen(update, context, command_args)
+            screen.clear_update()
+            await screen.start_handler(update, context)
+        except (UserNotFoundError, KeyError) as e:
+            logging.getLogger(__name__).warning("Bad update in command_handler: %s", e)
 
     async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not await self._run_middlewares(update, context):
@@ -138,6 +143,12 @@ class Application:
         except Exception as e:
             await self.handle_exception(e, update, context)
 
+    def _enforce_limits(self) -> None:
+        while len(self._user_screens) > self._max_user_screens:
+            self._user_screens.pop(next(iter(self._user_screens)))
+        while len(self._user_commands) > self._max_user_commands:
+            self._user_commands.pop(next(iter(self._user_commands)))
+
     async def get_or_create_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, args=None):
         command = self._get_user_command(update)
         not_initiated = command is None
@@ -147,19 +158,27 @@ class Application:
             await self._set_user_command(update, command)
         assert command is not None
         user_id = get_user_id(update)
+        if command not in self._screen_factories:
+            raise KeyError(f"Unknown command: {command}")
         factory = self._screen_factories[command]
         key: tuple[str, int] = (command, user_id)
-        screen = self._user_screens.get(key, factory())
+        screen = self._user_screens.get(key)
+        if screen is None:
+            screen = factory()
         screen.backend = self._backend
         if key not in self._user_screens:
             self._user_screens[key] = screen
+            self._enforce_limits()
             await screen.command_handler(args if args is not None else [], update, context)
         if not_initiated:
             await screen.display(update, context)
         return screen
 
     async def remove_current_screen(self, update: Update):
-        user_id = get_user_id(update)
+        try:
+            user_id = get_user_id(update)
+        except UserNotFoundError:
+            return
         command = self._get_user_command(update)
         if command is None:
             return
@@ -175,6 +194,7 @@ class Application:
     async def _set_user_command(self, update: Update, command: str):
         user_id = get_user_id(update)
         self._user_commands[user_id] = command
+        self._enforce_limits()
         await self._state_store.save(user_id, command)
 
     async def _remove_user_command(self, update: Update):

@@ -1,3 +1,4 @@
+import html
 from typing import Protocol, Sequence, runtime_checkable
 
 from telegram import Update
@@ -65,22 +66,23 @@ class PythonTelegramBotBackend:
 
         telegram_markup: list[list[InlineKeyboardButton]] = [
             [
-                InlineKeyboardButton(text=kb.text, callback_data=kb.callback_data)
+                InlineKeyboardButton(text=html.escape(kb.text), callback_data=kb.callback_data)
                 for kb in row
             ]
             for row in keyboard_markup
         ]
 
+        safe_text = html.escape(text)
         try:
             if update.message:
                 await update.message.reply_text(
-                    text=text,
+                    text=safe_text,
                     reply_markup=InlineKeyboardMarkup(telegram_markup),
                     parse_mode=parse_mode,
                 )
             elif update.callback_query:
                 await update.callback_query.edit_message_text(
-                    text=text,
+                    text=safe_text,
                     reply_markup=InlineKeyboardMarkup(telegram_markup),
                     parse_mode=parse_mode,
                 )
@@ -88,7 +90,7 @@ class PythonTelegramBotBackend:
             # Log at debug level; often just means "message not modified"
             import logging
 
-            logging.getLogger(__name__).debug(f"No modifications needed: {e.message}")
+            logging.getLogger(__name__).debug("No modifications needed: %s", e.message)
 
     async def send_plain_message(
         self,

@@ -6,7 +6,7 @@ def positive_int(number: str) -> int:
         parsed = int(number)
     except ValueError:
         raise ValidationError("введено не число")
-    if parsed < 0:
+    if parsed <= 0:
         raise ValidationError("число должно быть больше 0")
     return parsed
 
@@ -15,7 +15,7 @@ def positive_float(number: str) -> float:
         parsed = float(number)
     except ValueError:
         raise ValidationError("введено не число")
-    if parsed < 0:
+    if parsed <= 0:
         raise ValidationError("число должно быть больше 0")
     return parsed
 

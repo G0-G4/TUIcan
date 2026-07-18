@@ -162,22 +162,22 @@ class TestExclusiveCheckBoxGroup:
         group.add_all([cb1, cb2])
         assert len(group._checkboxes) == 2
 
-    def test_notify_unchecks_others(self):
+    async def test_notify_unchecks_others(self):
         """notify() should uncheck other checkboxes"""
         group = ExclusiveCheckBoxGroup()
         cb1 = CheckBox(text="1", selected=True, group=group)
         cb2 = CheckBox(text="2", selected=False, group=group)
 
-        group.notify(cb2)
+        await group.notify(cb2)
 
         assert cb1.selected is False
 
-    def test_notify_sticky(self):
+    async def test_notify_sticky(self):
         """sticky group should prevent unchecking the notifier"""
         group = ExclusiveCheckBoxGroup(sticky=True)
         cb = CheckBox(text="Test", selected=True, group=group)
 
-        group.notify(cb)
+        await group.notify(cb)
 
         assert cb.selected is True
 

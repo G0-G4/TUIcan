@@ -1,3 +1,4 @@
+import html
 import logging
 from abc import ABC, abstractmethod
 from typing import ClassVar, Protocol, Sequence
@@ -140,23 +141,24 @@ class Screen(ABC):
             return
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         from telegram.error import BadRequest
+        safe_text = html.escape(text)
         try:
             telegram_markup: list[list[InlineKeyboardButton]] = [
                 [
-                    InlineKeyboardButton(text=kb.text, callback_data=kb.callback_data)
+                    InlineKeyboardButton(text=html.escape(kb.text), callback_data=kb.callback_data)
                     for kb in row
                 ]
                 for row in keyboard_markup
             ]
             if target_update.message:
                 await target_update.message.reply_text(
-                    text=text,
+                    text=safe_text,
                     reply_markup=InlineKeyboardMarkup(telegram_markup),
                     parse_mode="HTML",
                 )
             elif target_update.callback_query:
                 await target_update.callback_query.edit_message_text(
-                    text=text,
+                    text=safe_text,
                     reply_markup=InlineKeyboardMarkup(telegram_markup),
                     parse_mode="HTML",
                 )
@@ -184,10 +186,11 @@ class Screen(ABC):
 
 class ScreenGroup(Screen):
 
-    def __init__(self, home_screen: Screen):
+    def __init__(self, home_screen: Screen, max_depth: int = 50):
         super().__init__([])
         self._home = home_screen
         self._screen_stack: list[Screen] = [home_screen]
+        self._max_depth = max_depth
 
     @property
     def backend(self) -> MessageBackend | None:
@@ -200,6 +203,8 @@ class ScreenGroup(Screen):
             screen.backend = backend
 
     async def go_to_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, new_screen: Screen) -> None:
+        if len(self._screen_stack) >= self._max_depth:
+            raise RuntimeError(f"Screen stack exceeded maximum depth of {self._max_depth}")
         self._screen_stack.append(new_screen)
         if self._backend is not None:
             new_screen.backend = self._backend

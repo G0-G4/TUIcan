@@ -68,7 +68,7 @@ class Component(ABC):
         self._component_id = component_id or str(id(self))
         self._callback_data = callback_data or self.component_id
         self.on_change = on_change
-        self._hidden = False
+        self._hidden = hidden
         self._data = data
         self._parent_screen: Screen | None = None
 
@@ -84,7 +84,7 @@ class Component(ABC):
         if not self.on_change:
             return
         result = _invoke_callback(self.on_change, self.update, self.context, self)
-        if asyncio.iscoroutine(result):
+        if inspect.isawaitable(result):
             await result
 
     @abstractmethod

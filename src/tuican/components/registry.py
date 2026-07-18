@@ -45,6 +45,12 @@ class ComponentRegistry:
         self._unregister_component(comp)
 
     def _register_component(self, comp: Component) -> None:
+        if comp.callback_data in self._callback_map:
+            existing = self._callback_map[comp.callback_data]
+            if existing is not comp:
+                raise ValueError(
+                    f"Duplicate callback_data {comp.callback_data!r} already registered by {existing!r}"
+                )
         self._callback_map[comp.callback_data] = comp
         comp.parent_screen = self._parent_screen
         if isinstance(comp, MessageHandlingComponent):

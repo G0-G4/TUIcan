@@ -43,7 +43,7 @@ class CheckBox(Component):
 
     async def call_on_change(self) -> None:
         if self._group:
-            self._group.notify(self)
+            await self._group.notify(self)
         await super().call_on_change()
 
     def render(self) -> KeyboardButton:
@@ -76,13 +76,15 @@ class ExclusiveCheckBoxGroup:
     def add_all(self, checkboxes: list[CheckBox]) -> None:
         self._checkboxes.extend(checkboxes)
 
-    def notify(self, notifier: CheckBox) -> None:
+    async def notify(self, notifier: CheckBox) -> None:
         if self._sticky and not notifier.selected:
             notifier._selected = True
+            await notifier.call_on_change()
             return
         for checkbox in self._checkboxes:
-            if checkbox != notifier:
+            if checkbox != notifier and checkbox.selected:
                 checkbox._selected = False
+                await checkbox.call_on_change()
 
     def get_selected(self) -> CheckBox | None:
         for checkbox in self._checkboxes:
