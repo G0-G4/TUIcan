@@ -47,13 +47,20 @@ class HelloScreen(Screen):
 
 load_dotenv()
 token = os.getenv("token")
-api_id = int(os.getenv("api_id", "0"))
-api_hash = os.getenv("api_hash", "")
+api_id_raw = os.getenv("api_id")
+api_hash = os.getenv("api_hash")
+
+if not token or not api_id_raw or not api_hash:
+    raise SystemExit(
+        "Please set token, api_id and api_hash in your .env file.\n"
+        "Get api_id and api_hash from https://my.telegram.org"
+    )
+
 app = Application(
     token,
     {"start": HelloScreen},
     transport="telethon",
-    api_id=api_id,
+    api_id=int(api_id_raw),
     api_hash=api_hash,
 )
 app.run()

@@ -25,8 +25,12 @@ class TestTelethonTransport:
         with patch(
             "tuican.transports.telethon_transport.TelegramClient",
             return_value=client,
-        ):
-            return TelethonTransport("test_token", api_id=1, api_hash="hash")
+        ) as tg_client_mock:
+            t = TelethonTransport("test_token", api_id=1, api_hash="hash")
+            # _ensure_client is called lazily (not in __init__); bind the mock
+            # so that the patched TelegramClient is used whenever it is invoked.
+            t._client = tg_client_mock.return_value
+            return t
 
     @pytest.fixture
     def application_core(self) -> AsyncMock:

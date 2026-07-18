@@ -9,3 +9,4 @@ dist/
 *.iml
 img.png
 
+*.session

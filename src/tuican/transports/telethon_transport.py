@@ -33,17 +33,23 @@ class TelethonTransport(Transport):
         self._token = token
         self._api_id = api_id
         self._api_hash = api_hash
-        self._client = TelegramClient("tuican_bot", api_id, api_hash)
+        self._client: TelegramClient | None = None
         self._application_core: ApplicationCore | None = None
+
+    def _ensure_client(self) -> TelegramClient:
+        if self._client is None:
+            self._client = TelegramClient("tuican_bot", self._api_id, self._api_hash)
+        return self._client
 
     def start(self, application_core: ApplicationCore) -> None:
         """Start the client and register event handlers."""
         self._application_core = application_core
-        self._client.start(bot_token=self._token)
-        self._client.add_event_handler(
+        client = self._ensure_client()
+        client.start(bot_token=self._token)
+        client.add_event_handler(
             self._on_new_message, events.NewMessage
         )
-        self._client.add_event_handler(
+        client.add_event_handler(
             self._on_callback_query, events.CallbackQuery
         )
         logger.debug("TelethonTransport started and handlers registered")
@@ -91,7 +97,7 @@ class TelethonTransport(Transport):
 
     def run(self) -> None:
         """Block until the client disconnects."""
-        self._client.run_until_disconnected()
+        self._ensure_client().run_until_disconnected()
 
     def run_webhook(
         self,
@@ -107,4 +113,4 @@ class TelethonTransport(Transport):
 
     def default_backend(self) -> TelethonBackend:
         """Return a ``TelethonBackend`` backed by the same client."""
-        return TelethonBackend(self._client)
+        return TelethonBackend(self._ensure_client())
