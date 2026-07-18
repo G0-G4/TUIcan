@@ -69,14 +69,14 @@ class TelethonBackend(MessageBackend):
                 await self._client.edit_message(
                     update.chat_id,
                     update.message_id,
-                    text=safe_text,
+                    message=safe_text,
                     buttons=buttons,
                     parse_mode="html",
                 )
             else:
                 await self._client.send_message(
                     entity=update.chat_id,
-                    text=safe_text,
+                    message=safe_text,
                     buttons=buttons,
                     parse_mode="html",
                 )
@@ -94,7 +94,7 @@ class TelethonBackend(MessageBackend):
         text: str,
     ) -> None:
         """Send a plain text message."""
-        await self._client.send_message(update.chat_id, text=text)
+        await self._client.send_message(update.chat_id, message=text)
 
     async def delete_message(
         self,

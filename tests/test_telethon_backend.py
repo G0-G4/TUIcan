@@ -73,7 +73,7 @@ class TestTelethonBackend:
         call = client.edit_message.await_args
         assert call is not None
         assert call.args == (callback_update.chat_id, callback_update.message_id)
-        assert call.kwargs["text"] == "Hello"
+        assert call.kwargs["message"] == "Hello"
         assert call.kwargs["parse_mode"] == "html"
         assert len(call.kwargs["buttons"]) == 2
         assert len(call.kwargs["buttons"][0]) == 1
@@ -102,7 +102,7 @@ class TestTelethonBackend:
         call = client.send_message.await_args
         assert call is not None
         assert call.kwargs["entity"] == command_update.chat_id
-        assert call.kwargs["text"] == "Hello"
+        assert call.kwargs["message"] == "Hello"
         assert call.kwargs["parse_mode"] == "html"
         assert len(call.kwargs["buttons"]) == 2
         assert len(call.kwargs["buttons"][0]) == 1
@@ -129,7 +129,7 @@ class TestTelethonBackend:
 
         call = client.edit_message.await_args
         assert call is not None
-        assert call.kwargs["text"] == "&lt;b&gt;bold&lt;/b&gt;"
+        assert call.kwargs["message"] == "&lt;b&gt;bold&lt;/b&gt;"
         mock_inline.assert_any_call("&lt;script&gt;", data=b"x")
 
     @pytest.mark.asyncio
@@ -225,7 +225,7 @@ class TestTelethonBackend:
     ) -> None:
         await backend.send_plain_message(callback_update, "plain text")
         client.send_message.assert_awaited_once_with(
-            callback_update.chat_id, text="plain text"
+            callback_update.chat_id, message="plain text"
         )
 
     # ---- delete_message ----
