@@ -17,8 +17,8 @@ class Button(Component):
             await self.call_on_change()
 
     async def handle_callback(self) -> bool:
-        query = self.update.callback_query if self.update else None
-        if query is None or query.data is None or query.data != self.callback_data:
+        update = self.update
+        if update is None or update.callback_data is None or update.callback_data != self.callback_data:
             return False
         await self.click()
         return True

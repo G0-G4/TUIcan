@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from tuican.keyboard_button import KeyboardButton
+from tuican.update import TuicanUpdate
 from tuican.components.input import Input
 
 
@@ -75,7 +76,9 @@ class TestInput:
         """handle_callback should return False when callback_data doesn't match"""
         inp = Input[str](validation_function=lambda x: x, callback_data="correct")
         inp.parent_screen = mock_screen
-        mock_screen.update.callback_query.data = "wrong"
+        mock_screen.update = TuicanUpdate.from_callback(
+            user_id=123, chat_id=456, callback_data="wrong", message_id=1
+        )
         result = await inp.handle_callback()
         assert result is False
 
@@ -86,7 +89,9 @@ class TestInput:
         inp.parent_screen = mock_screen
         assert inp.active is False
 
-        mock_screen.update.callback_query.data = "match"
+        mock_screen.update = TuicanUpdate.from_callback(
+            user_id=123, chat_id=456, callback_data="match", message_id=1
+        )
         result = await inp.handle_callback()
 
         assert result is True
@@ -130,8 +135,9 @@ class TestInput:
         """handle_message should return False when input is inactive"""
         inp = Input[str](validation_function=lambda x: x)
         inp.parent_screen = mock_screen
-        mock_screen.update.message = MagicMock()
-        mock_screen.update.message.text = "hello"
+        mock_screen.update = TuicanUpdate.from_message(
+            user_id=123, chat_id=456, message_text="hello", message_id=1
+        )
 
         result = await inp.handle_message()
         assert result is False
@@ -142,8 +148,9 @@ class TestInput:
         inp = Input[str](validation_function=lambda x: x)
         inp._active = True
         inp.parent_screen = mock_screen
-        mock_screen.update.message = MagicMock()
-        mock_screen.update.message.text = None
+        mock_screen.update = TuicanUpdate.from_message(
+            user_id=123, chat_id=456, message_text=None, message_id=1
+        )
 
         result = await inp.handle_message()
         assert result is False
@@ -154,8 +161,9 @@ class TestInput:
         inp = Input[int](validation_function=int, value=None)
         inp._active = True
         inp.parent_screen = mock_screen
-        mock_screen.update.message = MagicMock()
-        mock_screen.update.message.text = "42"
+        mock_screen.update = TuicanUpdate.from_message(
+            user_id=123, chat_id=456, message_text="42", message_id=1
+        )
 
         result = await inp.handle_message()
 
@@ -177,8 +185,9 @@ class TestInput:
         inp = Input[int](validation_function=int, on_change=handler)
         inp._active = True
         inp.parent_screen = mock_screen
-        mock_screen.update.message = MagicMock()
-        mock_screen.update.message.text = "42"
+        mock_screen.update = TuicanUpdate.from_message(
+            user_id=123, chat_id=456, message_text="42", message_id=1
+        )
 
         await inp.handle_message()
 

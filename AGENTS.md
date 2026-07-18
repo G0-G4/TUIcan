@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-TUIcan is a Python library for building interactive Telegram bot interfaces with reusable UI components. It is built on top of `python-telegram-bot` and follows a component-based architecture inspired by frontend frameworks.
+TUIcan is a Python library for building interactive Telegram bot interfaces with reusable UI components. It is **backend-agnostic** and supports both `python-telegram-bot` (PTB) and `telethon` transports, following a component-based architecture inspired by frontend frameworks.
 
 ## Architecture
 
@@ -10,24 +10,33 @@ TUIcan is a Python library for building interactive Telegram bot interfaces with
 
 - Stores per-user state (`_user_commands`, `_user_screens`) keyed by `(command, user_id)`.
 - Routes Telegram updates to the correct `Screen` instance.
-- Supports middleware pipeline (`@app.middleware`), persistence (`StateStore`), and two run modes (`run_polling`, `run_webhook`).
+- Supports middleware pipeline (`@app.middleware`), persistence (`StateStore`), and run modes delegated to the active `Transport`.
 - All user-facing handlers (`command_handler`, `dispatcher`, `message_dispatcher`) run middleware first. Return `False` from any middleware to abort processing.
+- Constructor accepts `transport="ptb" | "telethon" | Transport` plus `api_id`/`api_hash` for Telethon.
 
 ### Backend Abstraction (`src/tuican/backend.py`)
 
 - `MessageBackend` protocol abstracts all Telegram API calls.
-- `PythonTelegramBotBackend` is the default implementation.
+- `PythonTelegramBotBackend` (in `backends/ptb_backend.py`) is the default PTB implementation.
+- `TelethonBackend` (in `backends/telethon_backend.py`) implements the same protocol for Telethon.
 - `Application` creates one backend instance and injects it into every `Screen` via `screen.backend = ...`.
+
+### Transport Layer (`src/tuican/transports/`)
+
+- `Transport` protocol defines `start(core)`, `run()`, `run_webhook()`, and `default_backend()`.
+- `PtbTransport` (in `transports/ptb_transport.py`) wraps PTB `ApplicationBuilder`, handlers, and `run_polling`/`run_webhook`.
+- `TelethonTransport` (in `transports/telethon_transport.py`) wraps `TelegramClient`, registers `events.NewMessage`/`events.CallbackQuery`, and uses `client.run_until_disconnected()`. Telethon has **no webhook mode** (MTProto only).
+- All transports convert native Telegram events into the neutral `TuicanUpdate` format before passing them to `Application`.
 
 ### Screen & Component System (`src/tuican/components/`)
 
 - **`Component`** base class: every UI element has `component_id`, `callback_data`, `on_change`, and lifecycle methods `render()`, `handle_callback()`.
 - **`MessageHandlingComponent`** extends `Component` for elements that accept text messages (e.g., `Input`).
 - **`Screen`** is the layout container:
-  - `get_layout()` returns `Sequence[Sequence[InlineKeyboardButton | Component]]`.
+  - `get_layout()` returns `Sequence[Sequence[KeyboardButton | Component]]`.
   - `display()` auto-calls `render()` on any `Component` items, so users do **not** need to call `render()` manually.
   - `dispatcher()` routes callback queries to the correct component via `ComponentRegistry._callback_map`.
-- **`ComponentRegistry`** (`src/tuican/components/screen.py`) handles component registration, callback dispatching, and input focus management. `Screen` delegates to it.
+- **`ComponentRegistry`** (`src/tuican/components/registry.py`) handles component registration, callback dispatching, and input focus management. `Screen` delegates to it.
 - **`ScreenGroup`** is a stack-based screen navigator. It proxies all methods to the top screen on its stack. New screens pushed via `go_to_screen()` automatically inherit the parent's `backend`.
 
 ### State Persistence (`src/tuican/state_store.py`)
@@ -54,22 +63,32 @@ Only one `MessageHandlingComponent` may be active at a time per screen. `Input.t
 
 ### Lifecycle
 
-1. User sends `/start` → `Application.command_handler()` removes old screen, sets command, creates screen, calls `screen.start_handler()` → `screen.display()`.
-2. User taps a button → `Application.dispatcher()` gets or creates screen, calls `screen.dispatcher()` → component updates state → if `True`, `screen.display()` refreshes the message.
-3. User sends text while an input is active → `Application.message_dispatcher()` routes to `screen.message_dispatcher()` → input validates and stores value → screen redisplays.
+1. User sends `/start` → `Transport` receives native update, converts to `TuicanUpdate` → `Application.command_handler()` removes old screen, sets command, creates screen, calls `screen.on_start()` → `screen.display()`.
+2. User taps a button → `Transport` receives callback, converts to `TuicanUpdate` → `Application.dispatcher()` gets or creates screen, calls `screen.dispatcher()` → component updates state → if `True`, `screen.display()` refreshes the message.
+3. User sends text while an input is active → `Transport` receives message, converts to `TuicanUpdate` → `Application.message_dispatcher()` routes to `screen.message_dispatcher()` → input validates and stores value → screen redisplays.
 
 ## File Layout
 
 ```
 src/tuican/
-  __init__.py           # re-exports Application, get_user_id
+  __init__.py           # re-exports Application, get_user_id, TuicanUpdate, backends
   application.py        # Application, middleware, routing
-  backend.py            # MessageBackend protocol + default impl
+  backend.py            # MessageBackend protocol
+  update.py             # TuicanUpdate, UpdateKind, get_user_id
   state_store.py        # StateStore protocol + default impl
   errors/
     __init__.py         # ValidationError
   validation/
     __init__.py         # positive_int, positive_float, etc.
+  backends/
+    __init__.py         # re-exports PythonTelegramBotBackend, TelethonBackend
+    ptb_backend.py      # PTB MessageBackend implementation
+    telethon_backend.py # Telethon MessageBackend implementation
+  transports/
+    __init__.py         # re-exports Transport, PtbTransport, TelethonTransport
+    base.py             # Transport protocol
+    ptb_transport.py    # PTB transport implementation
+    telethon_transport.py # Telethon transport implementation
   components/
     __init__.py         # re-exports all public components
     component.py        # Component, MessageHandlingComponent, CallBack
@@ -90,7 +109,7 @@ src/tuican/
 ## Testing
 
 - Run with: `/Users/g.grishenkov/projects/TUIcan/.venv/bin/python -m pytest tests/ -v`
-- 70 unit tests covering component state, rendering, callback handling, focus management.
+- 300+ unit tests covering component state, rendering, callback handling, focus management, both PTB and Telethon backends.
 - Tests use `unittest.mock.MagicMock` / `AsyncMock` for Telegram objects.
 - Python 3.13+ required (uses `class Input[T]` generic syntax).
 

@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from tuican.keyboard_button import KeyboardButton
+from tuican.update import TuicanUpdate
 from tuican.components.checkbox import CheckBox, ExclusiveCheckBoxGroup
 
 
@@ -48,7 +49,9 @@ class TestCheckBox:
         """handle_callback should return False when callback_data doesn't match"""
         cb = CheckBox(text="Test", callback_data="correct")
         cb.parent_screen = mock_screen
-        mock_screen.update.callback_query.data = "wrong"
+        mock_screen.update = TuicanUpdate.from_callback(
+            user_id=123, chat_id=456, callback_data="wrong", message_id=1
+        )
         result = await cb.handle_callback()
         assert result is False
 
@@ -60,7 +63,9 @@ class TestCheckBox:
 
         assert cb.selected is False
 
-        mock_screen.update.callback_query.data = "match"
+        mock_screen.update = TuicanUpdate.from_callback(
+            user_id=123, chat_id=456, callback_data="match", message_id=1
+        )
         result = await cb.handle_callback()
 
         assert result is True

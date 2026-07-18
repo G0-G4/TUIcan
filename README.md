@@ -21,7 +21,9 @@ A Python library for building interactive Telegram bot interfaces with reusable 
 ## Adding to project
 
 ```bash
-uv add "tuican @ git+https://github.com/G0-G4/TUIcan.git"
+pip install "tuican[ptb]"
+# or for all backends
+pip install "tuican[all]"
 ```
 
 ## Quick Start
@@ -46,7 +48,7 @@ class MyScreen(Screen):
         self.button = Button("Click me", on_change=self.handle_click)
         super().__init__([self.button], message="click the button")
 
-    def handle_click(self, update, context, component):
+    def handle_click(self, component):
         self.message = "Hello world!"
 
     def get_layout(self):
@@ -54,7 +56,7 @@ class MyScreen(Screen):
 
 load_dotenv()
 token = os.getenv("token")
-app = Application(token, {'start': MyScreen})
+app = Application(token, {'start': MyScreen}, transport="ptb")
 app.run()
 ```
 
@@ -123,13 +125,10 @@ Register middleware to handle cross-cutting concerns like auth or rate limiting:
 
 ```python
 @app.middleware
-async def auth_middleware(update, context):
+async def auth_middleware(update):
     user_id = get_user_id(update)
     if user_id not in ALLOWED_USERS:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Access denied"
-        )
+        await app.backend.send_plain_message(update, "Access denied")
         return False
     return True
 ```
@@ -152,7 +151,7 @@ app = Application(
 
 ## Webhook Mode
 
-Run the bot in webhook mode instead of polling:
+Run the bot in webhook mode instead of polling (PTB transport only):
 
 ```python
 app.run_webhook(
@@ -162,15 +161,48 @@ app.run_webhook(
 )
 ```
 
+## Telethon Backend
+
+Use the Telethon transport for user-bot or client-style interactions. Telethon requires `api_id` and `api_hash` from [my.telegram.org](https://my.telegram.org) and does **not** support webhook mode.
+
+```python
+app = Application(
+    token,
+    {'start': MyScreen},
+    transport="telethon",
+    api_id=12345,
+    api_hash="your_api_hash",
+)
+app.run()
+```
+
 ## Custom Backend
 
 The Telegram API is abstracted behind the `MessageBackend` protocol. You can provide a custom backend for testing or integrating with a different Telegram library:
 
 ```python
 from tuican.backend import MessageBackend
+from tuican.update import TuicanUpdate
+from tuican.keyboard_button import KeyboardButton
+from collections.abc import Sequence
 
 class MyBackend(MessageBackend):
-    async def send_keyboard_message(self, update, context, text, keyboard_markup, parse_mode="HTML"):
+    async def send_keyboard_message(
+        self,
+        update: TuicanUpdate,
+        text: str,
+        keyboard_markup: Sequence[Sequence[KeyboardButton]],
+        parse_mode: str = "HTML",
+    ) -> None:
+        ...
+
+    async def send_plain_message(self, update: TuicanUpdate, text: str) -> None:
+        ...
+
+    async def delete_message(self, update: TuicanUpdate, message_id: int) -> None:
+        ...
+
+    async def set_bot_commands(self, commands: dict[str, str]) -> None:
         ...
 
 app = Application(token, screens, backend=MyBackend())
@@ -182,8 +214,8 @@ app = Application(token, screens, backend=MyBackend())
 Main entry point:
 ```python
 # Signature:
-# Application(token, screens: dict[str, StartScreenProtocol], state_store=None, backend=None)
-app = Application(token, screens, state_store=None, backend=None)
+# Application(token, screens: dict[str, StartScreenProtocol], *, transport="ptb", state_store=None, backend=None, api_id=None, api_hash=None)
+app = Application(token, screens, transport="ptb", state_store=None, backend=None)
 ```
 
 ### Component
@@ -201,8 +233,9 @@ See the `examples/` directory for:
 ## Requirements
 
 - Python 3.13+
-- python-telegram-bot
-- python-dotenv
+- python-dotenv (core)
+- python-telegram-bot (optional, for PTB transport)
+- telethon (optional, for Telethon transport)
 
 ## License
 

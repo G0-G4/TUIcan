@@ -52,7 +52,7 @@ class TodoListScreen(Screen):
 
     async def open_add_screen(self):
         screen = AddTodoScreen(self.group, self)
-        await self.group.go_to_screen(self.update, self.context, screen)
+        await self.group.go_to_screen(self.update, screen)
 
     def clear_done(self):
         self.todos = [(text, done) for text, done in self.todos if not done]
@@ -87,10 +87,10 @@ class AddTodoScreen(Screen):
         if hasattr(component, "value") and component.value:
             self.list_screen.todos.append((str(component.value), False))
             self.list_screen.message = self.list_screen._list_message()
-            await self.group.go_back(self.update, self.context)
+            await self.group.go_back(self.update)
 
     async def go_back(self):
-        await self.group.go_back(self.update, self.context)
+        await self.group.go_back(self.update)
 
     def get_layout(self):
         return [
@@ -111,5 +111,5 @@ class TodoApp(ScreenGroup):
 
 load_dotenv()
 token = os.getenv("token")
-app = Application(token, {"start": TodoApp})
+app = Application(token, {"start": TodoApp}, transport="ptb")
 app.run()

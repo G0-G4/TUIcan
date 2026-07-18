@@ -10,6 +10,7 @@ def test_all_expected_exports_are_importable():
     assert hasattr(tuican, "get_user_id")
     assert hasattr(tuican, "MessageBackend")
     assert hasattr(tuican, "PythonTelegramBotBackend")
+    assert hasattr(tuican, "TelethonBackend")
     assert hasattr(tuican, "ValidationError")
     assert hasattr(tuican, "KeyboardButton")
     assert hasattr(tuican, "StateStore")
@@ -19,6 +20,7 @@ def test_identity_against_direct_submodule_imports():
     import tuican
     import tuican.application
     import tuican.backend
+    import tuican.backends
     import tuican.errors
     import tuican.keyboard_button
     import tuican.state_store
@@ -26,7 +28,8 @@ def test_identity_against_direct_submodule_imports():
     assert tuican.Application is tuican.application.Application
     assert tuican.get_user_id is tuican.application.get_user_id
     assert tuican.MessageBackend is tuican.backend.MessageBackend
-    assert tuican.PythonTelegramBotBackend is tuican.backend.PythonTelegramBotBackend
+    assert tuican.PythonTelegramBotBackend is tuican.backends.PythonTelegramBotBackend
+    assert tuican.TelethonBackend is tuican.backends.TelethonBackend
     assert tuican.ValidationError is tuican.errors.ValidationError
     assert tuican.KeyboardButton is tuican.keyboard_button.KeyboardButton
     assert tuican.StateStore is tuican.state_store.StateStore
@@ -47,6 +50,9 @@ def test_all_matches_exported_set():
         "get_user_id",
         "MessageBackend",
         "PythonTelegramBotBackend",
+        "TelethonBackend",
+        "TuicanUpdate",
+        "UpdateKind",
         "ValidationError",
         "KeyboardButton",
         "StateStore",

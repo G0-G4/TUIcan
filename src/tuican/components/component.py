@@ -6,10 +6,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, Coroutine, TYPE_CHECKING
 
-from telegram import Update
-from telegram.ext import ContextTypes
-
 from ..keyboard_button import KeyboardButton
+from ..update import TuicanUpdate
 
 if TYPE_CHECKING:
     from .screen import Screen
@@ -19,8 +17,7 @@ CallBack = Callable[..., None] | Callable[..., Coroutine[Any, Any, None]]
 
 def _invoke_callback(
     callback: CallBack,
-    update: Update | None,
-    context: ContextTypes.DEFAULT_TYPE | None,
+    update: TuicanUpdate | None,
     component: "Component",
 ) -> None | Coroutine[Any, Any, None]:
     """Invoke a callback passing only the parameters it actually accepts.
@@ -28,8 +25,8 @@ def _invoke_callback(
     Supported signatures (0-3 positional params, ignoring *args/**kwargs):
       - ()
       - (component)
-      - (update, context)
-      - (update, context, component)
+      - (update)
+      - (update, component)
     """
     sig = inspect.signature(callback)
     params = [
@@ -43,11 +40,13 @@ def _invoke_callback(
     if count == 0:
         args = []
     elif count == 1:
-        args = [component]
+        param_name = params[0].name
+        if param_name == "update":
+            args = [update]
+        else:
+            args = [component]
     elif count == 2:
-        args = [update, context]
-    elif count == 3:
-        args = [update, context, component]
+        args = [update, component]
     else:
         raise TypeError(
             f"Callback {callback!r} must accept 0-3 positional parameters, got {count}"
@@ -73,17 +72,13 @@ class Component(ABC):
         self._parent_screen: Screen | None = None
 
     @property
-    def update(self) -> Update | None:
+    def update(self) -> TuicanUpdate | None:
         return self._parent_screen.update if self._parent_screen is not None else None
-
-    @property
-    def context(self) -> ContextTypes.DEFAULT_TYPE | None:
-        return self._parent_screen.context if self._parent_screen is not None else None
 
     async def call_on_change(self) -> None:
         if not self.on_change:
             return
-        result = _invoke_callback(self.on_change, self.update, self.context, self)
+        result = _invoke_callback(self.on_change, self.update, self)
         if inspect.isawaitable(result):
             await result
 

@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 from tuican.keyboard_button import KeyboardButton
+from tuican.update import TuicanUpdate
 from tuican.components.button import Button
 
 
@@ -38,7 +39,9 @@ class TestButton:
         """handle_callback should return False when callback_data doesn't match"""
         button = Button(text="Test", callback_data="correct_data")
         button.parent_screen = mock_screen
-        mock_screen.update.callback_query.data = "wrong_data"
+        mock_screen.update = TuicanUpdate.from_callback(
+            user_id=123, chat_id=456, callback_data="wrong_data", message_id=1
+        )
         result = await button.handle_callback()
         assert result is False
 
@@ -55,7 +58,9 @@ class TestButton:
 
         button = Button(text="Test", callback_data="match_data", on_change=handler)
         button.parent_screen = mock_screen
-        mock_screen.update.callback_query.data = "match_data"
+        mock_screen.update = TuicanUpdate.from_callback(
+            user_id=123, chat_id=456, callback_data="match_data", message_id=1
+        )
         result = await button.handle_callback()
 
         assert result is True

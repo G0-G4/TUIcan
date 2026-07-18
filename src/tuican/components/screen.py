@@ -3,11 +3,9 @@ import logging
 from abc import ABC, abstractmethod
 from typing import ClassVar, Protocol, Sequence
 
-from telegram import Update
-from telegram.ext import ContextTypes
-
 from ..backend import MessageBackend
 from ..keyboard_button import KeyboardButton
+from ..update import TuicanUpdate, UpdateKind
 from .component import Component, MessageHandlingComponent
 from .registry import ComponentRegistry
 
@@ -18,15 +16,14 @@ class Screen(ABC):
     def __init__(
         self,
         components: list[Component],
-        message: str | None = None,
         backend: MessageBackend | None = None,
+        message: str | None = None,
     ):
         self._message = message
-        self._update_to_display_on: Update | None = None
+        self._update_to_display_on: TuicanUpdate | None = None
         self._backend = backend
         self._registry = ComponentRegistry(components, parent_screen=self)
-        self._current_update: Update | None = None
-        self._current_context: ContextTypes.DEFAULT_TYPE | None = None
+        self._current_update: TuicanUpdate | None = None
 
     @property
     def _components(self) -> list[Component]:
@@ -45,11 +42,13 @@ class Screen(ABC):
         return self._registry.active_message_component
 
     @property
-    def backend(self) -> MessageBackend | None:
+    def backend(self) -> MessageBackend:
+        if self._backend is None:
+            raise RuntimeError("Backend not set on screen")
         return self._backend
 
     @backend.setter
-    def backend(self, backend: MessageBackend | None) -> None:
+    def backend(self, backend: MessageBackend) -> None:
         self._backend = backend
 
     @property
@@ -61,12 +60,8 @@ class Screen(ABC):
         self._message = message
 
     @property
-    def update(self) -> Update | None:
+    def update(self) -> TuicanUpdate | None:
         return self._current_update
-
-    @property
-    def context(self) -> ContextTypes.DEFAULT_TYPE | None:
-        return self._current_context
 
     @abstractmethod
     def get_layout(
@@ -74,9 +69,8 @@ class Screen(ABC):
     ) -> Sequence[Sequence[KeyboardButton | Component]]:
         raise NotImplementedError
 
-    async def display(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def display(self, update: TuicanUpdate) -> None:
         self._current_update = update
-        self._current_context = context
         try:
             raw_layout = self.get_layout()
             layout: list[list[KeyboardButton]] = [
@@ -89,25 +83,20 @@ class Screen(ABC):
             await self._send_or_update_message(self._message or "", layout)
         finally:
             self._current_update = None
-            self._current_context = None
 
-    async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    async def dispatcher(self, update: TuicanUpdate) -> bool:
         self._current_update = update
-        self._current_context = context
         try:
             return await self._registry.dispatcher(update)
         finally:
             self._current_update = None
-            self._current_context = None
 
-    async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    async def message_dispatcher(self, update: TuicanUpdate) -> bool:
         self._current_update = update
-        self._current_context = context
         try:
             return await self._registry.message_dispatcher(update)
         finally:
             self._current_update = None
-            self._current_context = None
 
     async def set_focus(self, focused_component: MessageHandlingComponent | None) -> None:
         await self._registry.set_focus(focused_component)
@@ -135,93 +124,60 @@ class Screen(ABC):
         update = self._current_update
         if update is None:
             return
-        if update.callback_query is not None:
+        if update.kind == UpdateKind.CALLBACK:
             self._update_to_display_on = update
         target_update = self._update_to_display_on if self._update_to_display_on is not None else update
-        if self._backend is not None:
-            assert self._current_context is not None
-            await self._backend.send_keyboard_message(target_update, self._current_context, text, keyboard_markup)
-            return
-        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-        from telegram.error import BadRequest
-        safe_text = html.escape(text)
-        try:
-            telegram_markup: list[list[InlineKeyboardButton]] = [
-                [
-                    InlineKeyboardButton(text=html.escape(kb.text), callback_data=kb.callback_data)
-                    for kb in row
-                ]
-                for row in keyboard_markup
-            ]
-            if target_update.message:
-                await target_update.message.reply_text(
-                    text=safe_text,
-                    reply_markup=InlineKeyboardMarkup(telegram_markup),
-                    parse_mode="HTML",
-                )
-            elif target_update.callback_query:
-                await target_update.callback_query.edit_message_text(
-                    text=safe_text,
-                    reply_markup=InlineKeyboardMarkup(telegram_markup),
-                    parse_mode="HTML",
-                )
-        except BadRequest as e:
-            logging.getLogger(__name__).debug(f"No modifications needed: {e.message}")
+        await self.backend.send_keyboard_message(target_update, text, keyboard_markup)
 
-    async def on_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await self.display(update, context)
+    async def on_start(self, update: TuicanUpdate) -> None:
+        await self.display(update)
 
     start_handler = on_start
 
     def clear_update(self) -> None:
         self._update_to_display_on = None
 
-    async def on_command(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def on_command(self, args: list[str], update: TuicanUpdate) -> None:
         ...
 
     command_handler = on_command
 
-    async def send_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str) -> None:
-        if self._backend is not None:
-            await self._backend.send_plain_message(update, context, text)
-            return
-        if update.effective_chat is None:
-            return
-        chat_id = update.effective_chat.id
-        await context.bot.send_message(chat_id=chat_id, text=text)
+    async def send_message(self, update: TuicanUpdate, text: str) -> None:
+        await self.backend.send_plain_message(update, text)
 
 
 class ScreenGroup(Screen):
 
-    def __init__(self, home_screen: Screen, max_depth: int = 50):
-        super().__init__([])
+    def __init__(self, home_screen: Screen, backend: MessageBackend | None = None, max_depth: int = 50):
+        super().__init__([], backend=backend)
         self._home = home_screen
         self._screen_stack: list[Screen] = [home_screen]
         self._max_depth = max_depth
 
     @property
-    def backend(self) -> MessageBackend | None:
+    def backend(self) -> MessageBackend:
+        if self._backend is None:
+            raise RuntimeError("Backend not set on screen group")
         return self._backend
 
     @backend.setter
-    def backend(self, backend: MessageBackend | None) -> None:
+    def backend(self, backend: MessageBackend) -> None:
         self._backend = backend
         for screen in self._screen_stack:
             screen.backend = backend
 
-    async def go_to_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, new_screen: Screen) -> None:
+    async def go_to_screen(self, update: TuicanUpdate, new_screen: Screen) -> None:
         if len(self._screen_stack) >= self._max_depth:
             raise RuntimeError(f"Screen stack exceeded maximum depth of {self._max_depth}")
         self._screen_stack.append(new_screen)
-        if self._backend is not None:
-            new_screen.backend = self._backend
+        new_screen.backend = self.backend
 
-    async def go_back(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def go_back(self, update: TuicanUpdate) -> None:
         if len(self._screen_stack) <= 1:
             raise RuntimeError("can't go back")
         self._screen_stack.pop()
 
-    async def go_home(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def go_home(self, update: TuicanUpdate) -> None:
         self._screen_stack = self._screen_stack[:1]
 
     def get_layout(
@@ -229,14 +185,14 @@ class ScreenGroup(Screen):
     ) -> Sequence[Sequence[KeyboardButton | Component]]:
         return self._screen_stack[-1].get_layout()
 
-    async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        return await self._screen_stack[-1].dispatcher(update, context)
+    async def dispatcher(self, update: TuicanUpdate) -> bool:
+        return await self._screen_stack[-1].dispatcher(update)
 
-    async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
-        return await self._screen_stack[-1].message_dispatcher(update, context)
+    async def message_dispatcher(self, update: TuicanUpdate) -> bool:
+        return await self._screen_stack[-1].message_dispatcher(update)
 
-    async def display(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        return await self._screen_stack[-1].display(update, context)
+    async def display(self, update: TuicanUpdate) -> None:
+        return await self._screen_stack[-1].display(update)
 
     def clear_update(self) -> None:
         self._screen_stack[-1].clear_update()
@@ -249,8 +205,8 @@ class ScreenGroup(Screen):
     def message(self, message: str | None) -> None:
         self._screen_stack[-1].message = message
 
-    async def on_command(self, args: list[str], update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await self._home.on_command(args, update, context)
+    async def on_command(self, args: list[str], update: TuicanUpdate) -> None:
+        await self._home.on_command(args, update)
 
     command_handler = on_command
 

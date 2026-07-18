@@ -1,155 +1,147 @@
+from __future__ import annotations
+
 import logging
-import os
-from typing import Any, Callable, Coroutine
+from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-from telegram import BotCommand, Update
-from telegram.ext import Application as TgApplication, ApplicationBuilder, CallbackQueryHandler, \
-    CommandHandler, ContextTypes, \
-    MessageHandler, filters
-
-from .backend import MessageBackend, PythonTelegramBotBackend
+from .backend import MessageBackend
+from .backends import PythonTelegramBotBackend
 from .components import Screen
 from .components.screen import StartScreenProtocol
 from .errors import UserNotFoundError, ValidationError
 from .state_store import StateStore
 from .stores import InMemoryStateStore
+from .update import TuicanUpdate, get_user_id
 
-Middleware = Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, bool]]
+if TYPE_CHECKING:
+    from .transports.base import Transport
 
-
-def get_user_id(update: Update) -> int:
-    if update.message is not None and update.message.from_user is not None:
-        return update.message.from_user.id
-    elif update.callback_query is not None and update.callback_query.from_user is not None:
-        return update.callback_query.from_user.id
-    raise UserNotFoundError(update)
+Middleware = Callable[[TuicanUpdate], Coroutine[Any, Any, bool]]
 
 
 class Application:
-    def __init__(self, token: str, screens: dict[str, StartScreenProtocol], state_store: StateStore | None = None, backend: MessageBackend | None = None):
-        self._app_builder = ApplicationBuilder().token(token)
-        self._app: TgApplication | None = None
+    def __init__(
+        self,
+        token: str,
+        screens: dict[str, StartScreenProtocol],
+        *,
+        transport: "Transport | str" = "ptb",
+        state_store: StateStore | None = None,
+        backend: MessageBackend | None = None,
+        api_id: int | None = None,
+        api_hash: str | None = None,
+    ):
+        self._token = token
+        self._screen_factories = screens
         self._user_screens: dict[tuple[str, int], Screen] = {}
         self._max_user_screens = 10_000
-        self._screen_factories = screens
         self._user_commands: dict[int, str] = {}
         self._max_user_commands = 10_000
-        self._backend = backend or PythonTelegramBotBackend()
         self._state_store = state_store or InMemoryStateStore()
         self._middlewares: list[Middleware] = []
-        self._post_init: Callable[[TgApplication], Coroutine[Any, Any, None]] | None = None
-        self._post_shutdown: Callable[[TgApplication], Coroutine[Any, Any, None]] | None = None
-        self._built: bool = False
+        self._transport: Transport
+
+        if isinstance(transport, str):
+            if transport == "ptb":
+                from tuican.transports.ptb_transport import PtbTransport
+                self._transport = PtbTransport(token)
+            elif transport == "telethon":
+                from tuican.transports.telethon_transport import TelethonTransport
+                self._transport = TelethonTransport(token, api_id, api_hash)
+            else:
+                raise ValueError(f"Unknown transport: {transport}")
+        else:
+            self._transport = transport
+
+        self._backend = backend
 
     @property
     def backend(self) -> MessageBackend:
+        if self._backend is None:
+            self._backend = self._transport.default_backend()
+        assert self._backend is not None
         return self._backend
 
-    def _build(self):
-        if self._built:
-            return
-        async def wrapper(application: TgApplication):
-            loaded = await self._state_store.load_all()
-            self._user_commands.update({int(k): v for k, v in loaded.items()})
-            await application.bot.set_my_commands(
-                [BotCommand(c, s.description) for c, s in self._screen_factories.items()])
-            if self._post_init:
-                await self._post_init(application)
+    @property
+    def screens(self) -> dict[str, StartScreenProtocol]:
+        return self._screen_factories
 
-        if self._post_shutdown:
-            self._app_builder.post_shutdown(self._post_shutdown)
-
-        if PROXY := os.getenv("PROXY"):
-            self._app_builder.proxy(PROXY)
-
-        self._app_builder.post_init(wrapper)
-        self._app = self._app_builder.build()
-        self._app.add_handler(CommandHandler(self._screen_factories.keys(), self.command_handler))
-        self._app.add_handler(CallbackQueryHandler(self.dispatcher, pattern=".*"))
-        self._app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.message_dispatcher))
-        self._built = True
-
-    def run(self):
-        self._build()
-        assert self._app is not None
-        self._app.run_polling(allowed_updates=Update.ALL_TYPES)
-
-    def run_webhook(self, webhook_url: str, listen: str = "0.0.0.0", port: int = 8080, **kwargs):
-        self._build()
-        assert self._app is not None
-        self._app.run_webhook(
-            webhook_url=webhook_url,
-            listen=listen,
-            port=port,
-            allowed_updates=Update.ALL_TYPES,
-            **kwargs
-        )
-
-    def post_shutdown(self, function: Callable[[TgApplication], Coroutine[Any, Any, None]]):
-        self._post_shutdown = function
-        return self
-
-    def post_init(self, function: Callable[[TgApplication], Coroutine[Any, Any, None]]):
-        self._post_init = function
-        return self
+    @property
+    def state_store(self) -> StateStore:
+        return self._state_store
 
     def middleware(self, function: Middleware):
         self._middlewares.append(function)
         return function
 
-    async def _run_middlewares(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    async def _run_middlewares(self, update: TuicanUpdate) -> bool:
         for mw in self._middlewares:
-            result = await mw(update, context)
+            result = await mw(update)
             if result is False:
                 return False
         return True
 
-    async def handle_exception(self, e: Exception, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        logging.getLogger(__name__).exception("Unhandled exception in update handler")
-        await self._backend.send_plain_message(update, context, "An unexpected error occurred. Please try again later.")
+    def run(self):
+        self._transport.start(self)
+        self._transport.run()
 
-    async def command_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not await self._run_middlewares(update, context):
+    def run_webhook(self, webhook_url: str, listen: str = "0.0.0.0", port: int = 8080, **kwargs):
+        self._transport.start(self)
+        self._transport.run_webhook(
+            webhook_url=webhook_url,
+            listen=listen,
+            port=port,
+            **kwargs,
+        )
+
+    async def handle_exception(self, e: Exception, update: TuicanUpdate):
+        logging.getLogger(__name__).exception("Unhandled exception in update handler")
+        await self.backend.send_plain_message(
+            update, "An unexpected error occurred. Please try again later."
+        )
+
+    async def command_handler(self, update: TuicanUpdate):
+        if not await self._run_middlewares(update):
             return
         try:
             await self.remove_current_screen(update)
-            message = update.message
-            if message is None or message.text is None:
+            message_text = update.message_text
+            if message_text is None or not message_text.startswith("/"):
                 return
-            command_args = message.text.replace('/', '').split()
+            command_args = message_text.replace("/", "").split()
             await self._set_user_command(update, command_args[0])
-            screen = await self.get_or_create_screen(update, context, command_args)
+            screen = await self.get_or_create_screen(update, command_args)
             screen.clear_update()
-            await screen.on_start(update, context)
+            await screen.on_start(update)
         except (UserNotFoundError, KeyError) as e:
             logging.getLogger(__name__).warning("Bad update in command_handler: %s", e)
 
-    async def dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not await self._run_middlewares(update, context):
+    async def dispatcher(self, update: TuicanUpdate):
+        if not await self._run_middlewares(update):
             return
-        screen = await self.get_or_create_screen(update, context)
+        screen = await self.get_or_create_screen(update)
         try:
-            if await screen.dispatcher(update, context):
-                await screen.display(update, context)
+            if await screen.dispatcher(update):
+                await screen.display(update)
         except Exception as e:
-            await self.handle_exception(e, update, context)
+            await self.handle_exception(e, update)
 
-    async def message_dispatcher(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not await self._run_middlewares(update, context):
+    async def message_dispatcher(self, update: TuicanUpdate):
+        if not await self._run_middlewares(update):
             return
-        screen = await self.get_or_create_screen(update, context)
+        screen = await self.get_or_create_screen(update)
         try:
-            if await screen.message_dispatcher(update, context):
-                message = update.message
-                if message is None:
+            if await screen.message_dispatcher(update):
+                message_id_to_delete = update.message_id
+                if message_id_to_delete is None:
                     return
-                message_id_to_delete = message.id
-                await screen.display(update, context)
-                await self._backend.delete_message(update, context, message_id_to_delete)
+                await screen.display(update)
+                await self.backend.delete_message(
+                    update, message_id_to_delete
+                )
         except ValidationError as e:
-            await self._backend.send_plain_message(update, context, str(e))
+            await self.backend.send_plain_message(update, str(e))
         except Exception as e:
-            await self.handle_exception(e, update, context)
+            await self.handle_exception(e, update)
 
     def _enforce_limits(self) -> None:
         while len(self._user_screens) > self._max_user_screens:
@@ -157,12 +149,12 @@ class Application:
         while len(self._user_commands) > self._max_user_commands:
             self._user_commands.pop(next(iter(self._user_commands)))
 
-    async def get_or_create_screen(self, update: Update, context: ContextTypes.DEFAULT_TYPE, args=None):
+    async def get_or_create_screen(self, update: TuicanUpdate, args=None):
         command = self._get_user_command(update)
         not_initiated = command is None
         if not_initiated:
             logging.getLogger(__name__).info("command is empty. possible press on button after restart. start will be shown")
-            command = 'start'
+            command = "start"
             await self._set_user_command(update, command)
         assert command is not None
         user_id = get_user_id(update)
@@ -173,16 +165,16 @@ class Application:
         screen = self._user_screens.get(key)
         if screen is None:
             screen = factory()
-        screen.backend = self._backend
+        screen.backend = self.backend
         if key not in self._user_screens:
             self._user_screens[key] = screen
             self._enforce_limits()
-            await screen.on_command(args if args is not None else [], update, context)
+            await screen.on_command(args if args is not None else [], update)
         if not_initiated:
-            await screen.display(update, context)
+            await screen.display(update)
         return screen
 
-    async def remove_current_screen(self, update: Update):
+    async def remove_current_screen(self, update: TuicanUpdate):
         try:
             user_id = get_user_id(update)
         except UserNotFoundError:
@@ -195,17 +187,17 @@ class Application:
             del self._user_screens[key]
         await self._remove_user_command(update)
 
-    def _get_user_command(self, update: Update) -> str | None:
+    def _get_user_command(self, update: TuicanUpdate) -> str | None:
         user_id = get_user_id(update)
         return self._user_commands.get(user_id)
 
-    async def _set_user_command(self, update: Update, command: str):
+    async def _set_user_command(self, update: TuicanUpdate, command: str):
         user_id = get_user_id(update)
         self._user_commands[user_id] = command
         self._enforce_limits()
         await self._state_store.save(user_id, command)
 
-    async def _remove_user_command(self, update: Update):
+    async def _remove_user_command(self, update: TuicanUpdate):
         user_id = get_user_id(update)
         if user_id in self._user_commands:
             del self._user_commands[user_id]

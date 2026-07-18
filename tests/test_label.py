@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
+from tuican.update import TuicanUpdate
 from tuican.keyboard_button import KeyboardButton
 from tuican.components.label import Label
 from tuican.components.button import Button
@@ -76,16 +77,15 @@ class TestLabel:
         screen = MixedScreen()
         screen.backend = backend
 
-        update = MagicMock()
-        update.callback_query = None
-        update.message = MagicMock()
-        context = MagicMock()
+        update = TuicanUpdate.from_message(
+            user_id=123, chat_id=456, message_text="hello", message_id=1
+        )
 
-        await screen.display(update, context)
+        await screen.display(update)
 
         backend.send_keyboard_message.assert_awaited_once()
         call_args = backend.send_keyboard_message.await_args
-        _target_update, _ctx, text, keyboard_markup = call_args.args
+        _target_update, text, keyboard_markup = call_args.args
 
         assert text == "msg"
         assert len(keyboard_markup) == 1

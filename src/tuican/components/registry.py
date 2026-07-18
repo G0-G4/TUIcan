@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 
-from telegram import Update
-
+from ..update import TuicanUpdate
 from .component import Component, MessageHandlingComponent
 
 if TYPE_CHECKING:
@@ -73,17 +72,17 @@ class ComponentRegistry:
                 self._active_message_component = None
             self._message_components.remove(comp)
 
-    async def dispatcher(self, update: Update) -> bool:
-        query = update.callback_query
-        if query is not None and query.data is not None:
-            component = self._callback_map.get(query.data)
+    async def dispatcher(self, update: TuicanUpdate) -> bool:
+        callback_data = update.callback_data
+        if callback_data is not None:
+            component = self._callback_map.get(callback_data)
             if component is not None:
                 return await component.handle_callback()
         return False
 
-    async def message_dispatcher(self, update: Update) -> bool:
-        message = update.message
-        if message is not None and self._active_message_component is not None:
+    async def message_dispatcher(self, update: TuicanUpdate) -> bool:
+        message_text = update.message_text
+        if message_text is not None and self._active_message_component is not None:
             return await self._active_message_component.handle_message()
         return False
 

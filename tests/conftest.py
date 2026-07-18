@@ -1,35 +1,37 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from telegram import Update, CallbackQuery
-from telegram.ext import ContextTypes
 
 from tuican.keyboard_button import KeyboardButton
+from tuican.update import TuicanUpdate, UpdateKind
 
 
 @pytest.fixture
 def mock_update():
-    """Create a mock Update with callback_query"""
-    update = MagicMock(spec=Update)
-    update.callback_query = MagicMock(spec=CallbackQuery)
-    update.callback_query.data = "test_callback_data"
-    update.message = None
-    return update
+    """Create a TuicanUpdate for callback scenarios"""
+    return TuicanUpdate.from_callback(
+        user_id=123,
+        chat_id=456,
+        callback_data="test_callback_data",
+        message_id=1,
+    )
 
 
 @pytest.fixture
-def mock_context():
-    """Create a mock Context"""
-    context = MagicMock(spec=ContextTypes.DEFAULT_TYPE)
-    context.bot = MagicMock()
-    return context
+def mock_message_update():
+    """Create a TuicanUpdate for message scenarios"""
+    return TuicanUpdate.from_message(
+        user_id=123,
+        chat_id=456,
+        message_text="hello world",
+        message_id=2,
+    )
 
 
 @pytest.fixture
-def mock_screen(mock_update, mock_context):
-    """Create a mock Screen that provides update/context to components"""
+def mock_screen(mock_update):
+    """Create a mock Screen that provides update to components"""
     screen = MagicMock()
     screen.update = mock_update
-    screen.context = mock_context
     screen.set_focus = AsyncMock()
     return screen
 
@@ -42,8 +44,9 @@ def make_component(mock_screen):
         
         class MockComponent(Component):
             async def handle_callback(self):
-                query = self.update.callback_query if self.update else None
-                return query is not None and query.data == self.callback_data
+                if self.update is None:
+                    return False
+                return self.update.callback_data == self.callback_data
             
             def render(self):
                 return KeyboardButton(text="test", callback_data=self.callback_data)

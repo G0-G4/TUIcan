@@ -35,14 +35,14 @@ class Input[T](MessageHandlingComponent):
         Returns:
             bool: True if message was handled, False otherwise
         """
-        message = self.update.message if self.update else None
-        if not message or not message.text:
+        update = self.update
+        if not update or update.message_text is None:
             return False
 
         if not self._active:
             return False
 
-        self._value = self.validate_input(message.text.strip())
+        self._value = self.validate_input(update.message_text.strip())
 
         await self.call_on_change()
 
@@ -52,8 +52,8 @@ class Input[T](MessageHandlingComponent):
         return True
 
     async def handle_callback(self) -> bool:
-        query = self.update.callback_query if self.update else None
-        if query is None or query.data is None or query.data != self.callback_data:
+        update = self.update
+        if update is None or update.callback_data is None or update.callback_data != self.callback_data:
             return False
         await self.toggle()
         return True

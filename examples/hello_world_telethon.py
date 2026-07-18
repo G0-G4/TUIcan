@@ -47,5 +47,13 @@ class HelloScreen(Screen):
 
 load_dotenv()
 token = os.getenv("token")
-app = Application(token, {"start": HelloScreen}, transport="ptb")
+api_id = int(os.getenv("api_id", "0"))
+api_hash = os.getenv("api_hash", "")
+app = Application(
+    token,
+    {"start": HelloScreen},
+    transport="telethon",
+    api_id=api_id,
+    api_hash=api_hash,
+)
 app.run()

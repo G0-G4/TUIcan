@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from tuican.keyboard_button import KeyboardButton
+from tuican.update import TuicanUpdate
 from tuican.components.component import Component, CallBack
 
 
@@ -98,10 +99,76 @@ class TestComponent:
         await comp.call_on_change()
         # Should not raise
 
+    @pytest.mark.asyncio
+    async def test_call_on_change_with_update_handler(self, mock_screen):
+        """call_on_change should pass update to handlers that accept (update)"""
+        received_update = None
+
+        def handler(update):
+            nonlocal received_update
+            received_update = update
+
+        comp = self._make_component(on_change=handler)
+        comp.parent_screen = mock_screen
+        await comp.call_on_change()
+
+        assert received_update is mock_screen.update
+
+    @pytest.mark.asyncio
+    async def test_call_on_change_with_update_and_component_handler(self, mock_screen):
+        """call_on_change should pass (update, component) to handlers that accept both"""
+        received_update = None
+        received_component = None
+
+        def handler(update, component):
+            nonlocal received_update, received_component
+            received_update = update
+            received_component = component
+
+        comp = self._make_component(on_change=handler)
+        comp.parent_screen = mock_screen
+        await comp.call_on_change()
+
+        assert received_update is mock_screen.update
+        assert received_component is comp
+
+    @pytest.mark.asyncio
+    async def test_call_on_change_with_zero_arg_handler(self, mock_screen):
+        """call_on_change should call handlers that accept no arguments"""
+        handler_called = False
+
+        def handler():
+            nonlocal handler_called
+            handler_called = True
+
+        comp = self._make_component(on_change=handler)
+        comp.parent_screen = mock_screen
+        await comp.call_on_change()
+
+        assert handler_called is True
+
+    def test_update_property_type(self, mock_screen):
+        """update property should return TuicanUpdate from parent_screen"""
+        comp = self._make_component()
+        comp.parent_screen = mock_screen
+        assert comp.update is mock_screen.update
+
+    def test_update_property_none_when_no_parent(self):
+        """update property should be None when no parent_screen is set"""
+        comp = self._make_component()
+        assert comp.update is None
+
+    def test_context_property_removed(self):
+        """Component should not have a context property"""
+        comp = self._make_component()
+        assert not hasattr(type(comp), 'context') or not isinstance(getattr(type(comp), 'context', None), property)
+
     def _make_component(self, callback_data="test_callback", component_id=None, on_change=None):
         class TestComp(Component):
             async def handle_callback(self):
-                return True
+                if self.update is None:
+                    return False
+                return self.update.callback_data == self.callback_data
             def render(self):
                 return KeyboardButton(text="test", callback_data=self.callback_data)
         

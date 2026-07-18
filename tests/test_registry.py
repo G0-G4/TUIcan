@@ -1,8 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from telegram import Update, CallbackQuery, Message
-
+from tuican.update import TuicanUpdate
 from tuican.components.registry import ComponentRegistry
 from tuican.components.component import Component, MessageHandlingComponent
 from tuican.keyboard_button import KeyboardButton
@@ -43,7 +42,6 @@ class TestComponentRegistry:
     def mock_screen(self):
         screen = MagicMock()
         screen.update = None
-        screen.context = None
         return screen
 
     def test_init_registers_components(self, mock_screen):
@@ -94,9 +92,9 @@ class TestComponentRegistry:
     async def test_dispatcher_routes_callback(self, mock_screen):
         c1 = MockComponent(callback_data="cb1")
         registry = ComponentRegistry([c1], parent_screen=mock_screen)
-        update = MagicMock(spec=Update)
-        update.callback_query = MagicMock(spec=CallbackQuery)
-        update.callback_query.data = "cb1"
+        update = TuicanUpdate.from_callback(
+            user_id=123, chat_id=456, callback_data="cb1", message_id=1
+        )
         result = await registry.dispatcher(update)
         assert result is True
 
@@ -104,8 +102,9 @@ class TestComponentRegistry:
     async def test_dispatcher_no_callback_query(self, mock_screen):
         c1 = MockComponent(callback_data="cb1")
         registry = ComponentRegistry([c1], parent_screen=mock_screen)
-        update = MagicMock(spec=Update)
-        update.callback_query = None
+        update = TuicanUpdate.from_message(
+            user_id=123, chat_id=456, message_text="hello", message_id=1
+        )
         result = await registry.dispatcher(update)
         assert result is False
 
@@ -113,9 +112,9 @@ class TestComponentRegistry:
     async def test_dispatcher_unknown_callback_data(self, mock_screen):
         c1 = MockComponent(callback_data="cb1")
         registry = ComponentRegistry([c1], parent_screen=mock_screen)
-        update = MagicMock(spec=Update)
-        update.callback_query = MagicMock(spec=CallbackQuery)
-        update.callback_query.data = "unknown"
+        update = TuicanUpdate.from_callback(
+            user_id=123, chat_id=456, callback_data="unknown", message_id=1
+        )
         result = await registry.dispatcher(update)
         assert result is False
 
@@ -124,8 +123,9 @@ class TestComponentRegistry:
         msg_comp = MockMessageComponent(callback_data="msg")
         registry = ComponentRegistry([msg_comp], parent_screen=mock_screen)
         registry._active_message_component = msg_comp
-        update = MagicMock(spec=Update)
-        update.message = MagicMock(spec=Message)
+        update = TuicanUpdate.from_message(
+            user_id=123, chat_id=456, message_text="hello", message_id=1
+        )
         result = await registry.message_dispatcher(update)
         assert result is True
 
@@ -133,8 +133,9 @@ class TestComponentRegistry:
     async def test_message_dispatcher_no_active_component(self, mock_screen):
         msg_comp = MockMessageComponent(callback_data="msg")
         registry = ComponentRegistry([msg_comp], parent_screen=mock_screen)
-        update = MagicMock(spec=Update)
-        update.message = MagicMock(spec=Message)
+        update = TuicanUpdate.from_message(
+            user_id=123, chat_id=456, message_text="hello", message_id=1
+        )
         result = await registry.message_dispatcher(update)
         assert result is False
 
@@ -143,8 +144,9 @@ class TestComponentRegistry:
         msg_comp = MockMessageComponent(callback_data="msg")
         registry = ComponentRegistry([msg_comp], parent_screen=mock_screen)
         registry._active_message_component = msg_comp
-        update = MagicMock(spec=Update)
-        update.message = None
+        update = TuicanUpdate.from_callback(
+            user_id=123, chat_id=456, callback_data="cb", message_id=1
+        )
         result = await registry.message_dispatcher(update)
         assert result is False
 
