@@ -69,7 +69,7 @@ class TestTelethonTransport:
         event.message.text = "/start"
         event.sender_id = 123
         event.chat_id = 456
-        event.message_id = 789
+        event.id = 789
 
         await handler(event)
 
@@ -98,7 +98,7 @@ class TestTelethonTransport:
         event.message.text = "hello world"
         event.sender_id = 123
         event.chat_id = 456
-        event.message_id = 789
+        event.id = 789
 
         await handler(event)
 
@@ -157,7 +157,7 @@ class TestTelethonTransport:
         event.message = None
         event.sender_id = 123
         event.chat_id = 456
-        event.message_id = 789
+        event.id = 789
 
         await handler(event)
 

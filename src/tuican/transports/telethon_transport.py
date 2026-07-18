@@ -61,7 +61,7 @@ class TelethonTransport(Transport):
         text = event.message.text if event.message is not None else None
         user_id = event.sender_id
         chat_id = event.chat_id
-        message_id = event.message_id
+        message_id = event.id if event.message else None
 
         if text is not None and text.startswith("/"):
             update = TuicanUpdate.from_command(
