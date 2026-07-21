@@ -13,4 +13,4 @@ class HLine(Component):
         )
 
 
-Hline = HLine  # backward-compat alias
+

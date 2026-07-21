@@ -79,7 +79,6 @@ Horizontal separator line:
 ```python
 HLine()  # renders as a divider row
 ```
-> The `Hline` alias (lowercase *l*) still works for backward compatibility.
 
 ### CheckBox
 Toggleable checkbox with group support:
