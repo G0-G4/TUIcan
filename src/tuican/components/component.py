@@ -18,7 +18,7 @@ CallBack = Callable[..., None] | Callable[..., Coroutine[Any, Any, None]]
 def _invoke_callback(
     callback: CallBack,
     update: TuicanUpdate | None,
-    component: "Component",
+    component: Any,
 ) -> None | Coroutine[Any, Any, None]:
     """Invoke a callback passing only the parameters it actually accepts.
 
