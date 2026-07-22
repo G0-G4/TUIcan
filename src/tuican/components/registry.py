@@ -89,12 +89,14 @@ class ComponentRegistry:
     async def set_focus(self, focused_component: MessageHandlingComponent | None) -> None:
         """Set which component receives text messages.
 
-        Deactivates the previous focused component (if any), then marks the new
-        one as accepting messages via ``accept_focus()`` without clearing its
+        Deactivates every other message-handling component so UI active state
+        (e.g. Input prompt) cannot diverge from the registry routing target.
+        Then marks the focused one via ``accept_focus()`` without clearing its
         value or firing ``on_change``.
         """
-        if self._active_message_component is not None and self._active_message_component is not focused_component:
-            await self._active_message_component.deactivate()
+        for comp in list(self._message_components):
+            if comp is not focused_component:
+                await comp.deactivate()
         self._active_message_component = focused_component
         if focused_component is not None:
             focused_component.accept_focus()

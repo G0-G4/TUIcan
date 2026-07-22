@@ -83,17 +83,18 @@ class TestScreenFocus:
         assert screen.input_b.parent_screen is screen
 
     @pytest.mark.asyncio
-    async def test_set_focus_ignores_inactive_components(self, backend):
-        """set_focus should not call deactivate on components that are already inactive"""
+    async def test_set_focus_deactivates_peers_even_if_inactive_flag(self, backend):
+        """set_focus deactivates all other message components for exclusive UI state"""
         screen = TwoInputScreen(backend=backend)
 
-        screen.input_a.deactivate = AsyncMock()
-        screen.input_b.deactivate = AsyncMock()
+        # Force a desynced peer that looks active while not in the registry
+        screen.input_b._active = True
+        screen.input_b.deactivate = AsyncMock(wraps=screen.input_b.deactivate)
 
         await screen.set_focus(screen.input_a)
 
-        screen.input_a.deactivate.assert_not_awaited()
-        screen.input_b.deactivate.assert_not_awaited()
+        screen.input_b.deactivate.assert_awaited()
+        assert screen.input_a.active is True
 
     @pytest.mark.asyncio
     async def test_set_focus_enables_message_handling(self, backend):
@@ -124,6 +125,52 @@ class TestScreenFocus:
 
         assert screen.input_a.active is True
         assert screen.input_a.value == "existing"
+
+    @pytest.mark.asyncio
+    async def test_toggle_switches_exclusive_active_prompt(self, backend):
+        """Tapping another input moves active prompt and message routing exclusively"""
+        from tuican.update import TuicanUpdate
+
+        screen = TwoInputScreen(backend=backend)
+        await screen.set_focus(screen.input_a)
+        assert screen.input_a.active is True
+        assert screen.input_b.active is False
+
+        # User taps input_b
+        screen._current_update = TuicanUpdate.from_callback(
+            user_id=1, chat_id=1, callback_data=screen.input_b.callback_data, message_id=1
+        )
+        await screen.input_b.handle_callback()
+
+        assert screen.input_a.active is False
+        assert screen.input_b.active is True
+        assert "Enter:" in screen.input_b.render().text
+        assert "Enter:" not in screen.input_a.render().text
+
+        # Typed text goes to input_b only
+        screen._current_update = TuicanUpdate.from_message(
+            user_id=1, chat_id=1, message_text="42", message_id=2
+        )
+        handled = await screen.message_dispatcher(screen._current_update)
+        assert handled is True
+        assert screen.input_b.value == 42
+        assert screen.input_a.value is None
+
+    @pytest.mark.asyncio
+    async def test_toggle_same_input_twice_clears_focus(self, backend):
+        """Second tap on the same input deactivates it"""
+        from tuican.update import TuicanUpdate
+
+        screen = TwoInputScreen(backend=backend)
+        screen._current_update = TuicanUpdate.from_callback(
+            user_id=1, chat_id=1, callback_data=screen.input_a.callback_data, message_id=1
+        )
+        await screen.input_a.handle_callback()
+        assert screen.input_a.active is True
+
+        await screen.input_a.handle_callback()
+        assert screen.input_a.active is False
+        assert screen._active_message_component is None
 
 
 class TestScreenLifecycleMethods:

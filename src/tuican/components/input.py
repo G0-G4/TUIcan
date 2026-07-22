@@ -45,11 +45,12 @@ class Input[T](MessageHandlingComponent):
 
         self._value = self.validate_input(update.message_text.strip())
 
-        await self.call_on_change()
-
+        # Release focus before on_change so handlers can focus the next field cleanly
         self._active = False
         if self.parent_screen is not None:
             self.parent_screen.clear_active_message_component(self)
+
+        await self.call_on_change()
         return True
 
     async def handle_callback(self) -> bool:
@@ -85,10 +86,10 @@ class Input[T](MessageHandlingComponent):
         """
         if clear_value:
             self._value = None
-        self._active = True
         if self.parent_screen is not None:
-            # Registry focus also calls accept_focus and deactivates peers
+            # set_focus deactivates peers and calls accept_focus
             await self.parent_screen.set_focus(self)
+        self._active = True
 
     async def deactivate(self) -> None:
         """Deactivate the input to stop accepting messages"""
@@ -97,13 +98,14 @@ class Input[T](MessageHandlingComponent):
             self.parent_screen.clear_active_message_component(self)
 
     async def toggle(self) -> None:
+        """Tap once to start accepting input; tap again to cancel focus."""
         if self._active:
             await self.deactivate()
         else:
-            # Focus without clearing value (user may re-activate an edit field)
-            self._active = True
             if self.parent_screen is not None:
+                # Exclusive focus via registry — peers lose active prompt
                 await self.parent_screen.set_focus(self)
+            self._active = True
 
     def validate_input(self, text: str) -> T:
         return self._validation_function(text)
