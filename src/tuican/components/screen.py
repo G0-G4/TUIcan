@@ -80,7 +80,7 @@ class Screen(ABC):
                 ]
                 for row in raw_layout
             ]
-            await self._send_or_update_message(self._message or "", layout)
+            await self._send_or_update_message(self.message or "", layout)
         finally:
             self._current_update = None
 
