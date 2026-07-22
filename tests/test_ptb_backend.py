@@ -242,6 +242,44 @@ class TestPythonTelegramBotBackend:
         mock_logger.debug.assert_called_once()
 
     # ------------------------------------------------------------------
+    # send_notification
+    # ------------------------------------------------------------------
+
+    @pytest.mark.asyncio
+    async def test_send_notification_sends_and_schedules_delete(
+        self,
+        backend,
+        mock_bot,
+        message_update: TuicanUpdate,
+    ) -> None:
+        sent = MagicMock()
+        sent.message_id = 77
+        mock_bot.send_message = AsyncMock(return_value=sent)
+
+        with patch("tuican.backends.ptb_backend.asyncio.create_task") as create_task:
+            await backend.send_notification(message_update, "Toast", delete_after=1.0)
+
+        mock_bot.send_message.assert_awaited_once()
+        create_task.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_send_notification_no_delete_when_zero(
+        self,
+        backend,
+        mock_bot,
+        message_update: TuicanUpdate,
+    ) -> None:
+        sent = MagicMock()
+        sent.message_id = 77
+        mock_bot.send_message = AsyncMock(return_value=sent)
+
+        with patch("tuican.backends.ptb_backend.asyncio.create_task") as create_task:
+            await backend.send_notification(message_update, "Keep", delete_after=0)
+
+        mock_bot.send_message.assert_awaited_once()
+        create_task.assert_not_called()
+
+    # ------------------------------------------------------------------
     # delete_message
     # ------------------------------------------------------------------
 

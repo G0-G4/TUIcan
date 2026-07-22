@@ -20,6 +20,7 @@ TUIcan is a Python library for building interactive Telegram bot interfaces with
 - `PythonTelegramBotBackend` (in `backends/ptb_backend.py`) is the default PTB implementation.
 - `TelethonBackend` (in `backends/telethon_backend.py`) implements the same protocol for Telethon.
 - `Application` creates one backend instance and injects it into every `Screen` via `screen.backend = ...`.
+- **`send_notification(update, text, delete_after=1.0)`** — toast message that auto-deletes after `delete_after` seconds (`0` = keep). Prefer this for ephemeral feedback; use `send_plain_message` for permanent text. Screens expose `await screen.notify(text, delete_after=1.0)`.
 
 ### Transport Layer (`src/tuican/transports/`)
 

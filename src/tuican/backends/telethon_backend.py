@@ -7,6 +7,7 @@ module will raise ``ImportError`` at import time.
 
 from __future__ import annotations
 
+import asyncio
 import html
 import logging
 from typing import Sequence
@@ -95,6 +96,37 @@ class TelethonBackend(MessageBackend):
     ) -> None:
         """Send a plain text message."""
         await self._client.send_message(update.chat_id, message=text)
+
+    async def send_notification(
+        self,
+        update: TuicanUpdate,
+        text: str,
+        delete_after: float = 1.0,
+    ) -> None:
+        """Send a toast message that auto-deletes after ``delete_after`` seconds."""
+        message = await self._client.send_message(update.chat_id, message=text)
+        if delete_after > 0 and message is not None:
+            chat_id = update.chat_id
+            message_id = message.id
+            asyncio.create_task(
+                self._delete_notification_later(chat_id, message_id, delete_after)
+            )
+
+    async def _delete_notification_later(
+        self,
+        chat_id: int,
+        message_id: int,
+        delay: float,
+    ) -> None:
+        try:
+            await asyncio.sleep(delay)
+            await self._client.delete_messages(chat_id, [message_id])
+        except Exception:
+            logger.debug(
+                "Failed to delete notification %s",
+                message_id,
+                exc_info=True,
+            )
 
     async def delete_message(
         self,

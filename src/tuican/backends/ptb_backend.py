@@ -5,6 +5,7 @@ All `telegram` imports are local to this module only.
 
 from __future__ import annotations
 
+import asyncio
 import html
 import logging
 from typing import Sequence
@@ -100,6 +101,60 @@ class PythonTelegramBotBackend:
             )
         except BadRequest:
             logger.debug("BadRequest swallowed in send_plain_message", exc_info=True)
+
+    async def send_notification(
+        self,
+        update: TuicanUpdate,
+        text: str,
+        delete_after: float = 1.0,
+    ) -> None:
+        """Send a toast message that auto-deletes after ``delete_after`` seconds."""
+        from telegram.error import BadRequest
+
+        safe_text = html.escape(text)
+
+        try:
+            if update.chat_id is None:
+                logger.debug("Skipping send_notification: chat_id is None")
+                return
+            message = await self._bot.send_message(
+                chat_id=update.chat_id,
+                text=safe_text,
+            )
+        except BadRequest:
+            logger.debug("BadRequest swallowed in send_notification", exc_info=True)
+            return
+
+        if delete_after > 0 and message is not None:
+            chat_id = update.chat_id
+            message_id = message.message_id
+            asyncio.create_task(
+                self._delete_notification_later(chat_id, message_id, delete_after)
+            )
+
+    async def _delete_notification_later(
+        self,
+        chat_id: int,
+        message_id: int,
+        delay: float,
+    ) -> None:
+        from telegram.error import BadRequest
+
+        try:
+            await asyncio.sleep(delay)
+            await self._bot.delete_message(chat_id=chat_id, message_id=message_id)
+        except BadRequest:
+            logger.debug(
+                "BadRequest swallowed deleting notification %s",
+                message_id,
+                exc_info=True,
+            )
+        except Exception:
+            logger.debug(
+                "Failed to delete notification %s",
+                message_id,
+                exc_info=True,
+            )
 
     async def delete_message(
         self,

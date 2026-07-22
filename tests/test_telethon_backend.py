@@ -228,6 +228,27 @@ class TestTelethonBackend:
             callback_update.chat_id, message="plain text"
         )
 
+    @pytest.mark.asyncio
+    async def test_send_notification_sends_and_schedules_delete(
+        self,
+        backend: TelethonBackend,
+        client: AsyncMock,
+        callback_update: TuicanUpdate,
+    ) -> None:
+        from unittest.mock import MagicMock, patch
+
+        msg = MagicMock()
+        msg.id = 55
+        client.send_message = AsyncMock(return_value=msg)
+
+        with patch("tuican.backends.telethon_backend.asyncio.create_task") as create_task:
+            await backend.send_notification(callback_update, "toast", delete_after=1.0)
+
+        client.send_message.assert_awaited_once_with(
+            callback_update.chat_id, message="toast"
+        )
+        create_task.assert_called_once()
+
     # ---- delete_message ----
 
     @pytest.mark.asyncio

@@ -19,6 +19,9 @@ class MyBackend:
     async def send_plain_message(self, update, text) -> None:
         pass
 
+    async def send_notification(self, update, text, delete_after=1.0) -> None:
+        pass
+
     async def delete_message(self, update, message_id) -> None:
         pass
 
@@ -296,7 +299,7 @@ class TestDispatcher:
         app._backend = AsyncMock()
 
         await app.dispatcher(mock_update_callback)
-        app._backend.send_plain_message.assert_awaited_once()
+        app._backend.send_notification.assert_awaited_once()
 
 
 class TestMessageDispatcher:
@@ -325,10 +328,10 @@ class TestMessageDispatcher:
         app._backend = AsyncMock()
 
         await app.message_dispatcher(mock_update_message)
-        app._backend.send_plain_message.assert_awaited_once()
-        call_args = app._backend.send_plain_message.await_args[0]
-        assert isinstance(call_args[0], TuicanUpdate)
-        assert call_args[1] == "bad input"
+        app._backend.send_notification.assert_awaited_once()
+        call_args = app._backend.send_notification.await_args
+        assert isinstance(call_args.args[0], TuicanUpdate)
+        assert call_args.args[1] == "bad input"
 
     @pytest.mark.asyncio
     async def test_generic_exception(self, app, mock_update_message):
@@ -339,10 +342,10 @@ class TestMessageDispatcher:
         app._backend = AsyncMock()
 
         await app.message_dispatcher(mock_update_message)
-        app._backend.send_plain_message.assert_awaited_once()
-        call_args = app._backend.send_plain_message.await_args[0]
-        assert isinstance(call_args[0], TuicanUpdate)
-        assert call_args[1] == "An unexpected error occurred. Please try again later."
+        app._backend.send_notification.assert_awaited_once()
+        call_args = app._backend.send_notification.await_args
+        assert isinstance(call_args.args[0], TuicanUpdate)
+        assert call_args.args[1] == "An unexpected error occurred. Please try again later."
 
 
 class TestGetOrCreateScreen:
@@ -454,10 +457,10 @@ class TestHandleException:
         app._backend = AsyncMock()
         exc = RuntimeError("secret details")
         await app.handle_exception(exc, mock_update_message)
-        app._backend.send_plain_message.assert_awaited_once()
-        call_args = app._backend.send_plain_message.await_args[0]
-        assert isinstance(call_args[0], TuicanUpdate)
-        assert call_args[1] == "An unexpected error occurred. Please try again later."
+        app._backend.send_notification.assert_awaited_once()
+        call_args = app._backend.send_notification.await_args
+        assert isinstance(call_args.args[0], TuicanUpdate)
+        assert call_args.args[1] == "An unexpected error occurred. Please try again later."
 
 
 class TestRunAndRunWebhook:

@@ -141,6 +141,22 @@ class Screen(ABC):
     async def send_message(self, update: TuicanUpdate, text: str) -> None:
         await self.backend.send_plain_message(update, text)
 
+    async def notify(
+        self,
+        text: str,
+        delete_after: float = 1.0,
+        *,
+        update: TuicanUpdate | None = None,
+    ) -> None:
+        """Send a short-lived toast notification (auto-deletes by default).
+
+        Uses the screen's current update when ``update`` is omitted.
+        """
+        target = update if update is not None else self.update
+        if target is None:
+            return
+        await self.backend.send_notification(target, text, delete_after)
+
 
 class ScreenGroup(Screen):
 

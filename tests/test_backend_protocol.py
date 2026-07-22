@@ -70,6 +70,7 @@ def test_protocol_method_signatures() -> None:
     sigs = {
         "send_keyboard_message": inspect.signature(MessageBackend.send_keyboard_message),
         "send_plain_message": inspect.signature(MessageBackend.send_plain_message),
+        "send_notification": inspect.signature(MessageBackend.send_notification),
         "delete_message": inspect.signature(MessageBackend.delete_message),
         "set_bot_commands": inspect.signature(MessageBackend.set_bot_commands),
     }
@@ -82,6 +83,11 @@ def test_protocol_method_signatures() -> None:
     # send_plain_message(update, text)
     params = list(sigs["send_plain_message"].parameters)
     assert params == ["self", "update", "text"]
+
+    # send_notification(update, text, delete_after=1.0)
+    params = list(sigs["send_notification"].parameters)
+    assert params == ["self", "update", "text", "delete_after"]
+    assert sigs["send_notification"].parameters["delete_after"].default == 1.0
 
     # delete_message(update, message_id)
     params = list(sigs["delete_message"].parameters)
@@ -112,6 +118,11 @@ class _ConcreteBackend:
     async def send_plain_message(self, update: TuicanUpdate, text: str) -> None:
         return None
 
+    async def send_notification(
+        self, update: TuicanUpdate, text: str, delete_after: float = 1.0
+    ) -> None:
+        return None
+
     async def delete_message(self, update: TuicanUpdate, message_id: int) -> None:
         return None
 
@@ -135,6 +146,9 @@ class _OldShapeBackend:
     async def send_plain_message(self, update, context, text: str) -> None:
         return None
 
+    async def send_notification(self, update, context, text: str, delete_after: float = 1.0) -> None:
+        return None
+
     async def delete_message(self, update, context, message_id: int) -> None:
         return None
 
@@ -154,6 +168,7 @@ def _satisfied_by(candidate: object) -> bool:
     for method_name in (
         "send_keyboard_message",
         "send_plain_message",
+        "send_notification",
         "delete_message",
         "set_bot_commands",
     ):
@@ -210,6 +225,7 @@ def test_concrete_backend_can_be_called_with_tuican_update() -> None:
     async def run() -> None:
         await backend.send_keyboard_message(update, "hi", keyboard)
         await backend.send_plain_message(update, "plain")
+        await backend.send_notification(update, "toast")
         await backend.delete_message(update, message_id=1)
         await backend.set_bot_commands(commands={"start": "Start"})
 

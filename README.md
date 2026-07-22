@@ -127,7 +127,7 @@ Register middleware to handle cross-cutting concerns like auth or rate limiting:
 async def auth_middleware(update):
     user_id = get_user_id(update)
     if user_id not in ALLOWED_USERS:
-        await app.backend.send_plain_message(update, "Access denied")
+        await app.backend.send_notification(update, "Access denied")
         return False
     return True
 ```
@@ -196,6 +196,11 @@ class MyBackend(MessageBackend):
         ...
 
     async def send_plain_message(self, update: TuicanUpdate, text: str) -> None:
+        ...
+
+    async def send_notification(
+        self, update: TuicanUpdate, text: str, delete_after: float = 1.0
+    ) -> None:
         ...
 
     async def delete_message(self, update: TuicanUpdate, message_id: int) -> None:

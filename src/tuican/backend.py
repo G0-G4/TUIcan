@@ -31,6 +31,19 @@ class MessageBackend(Protocol):
         """Send a plain text message."""
         ...
 
+    async def send_notification(
+        self,
+        update: TuicanUpdate,
+        text: str,
+        delete_after: float = 1.0,
+    ) -> None:
+        """Send a short-lived notification that auto-deletes after ``delete_after`` seconds.
+
+        Use for toasts (saved, errors, access denied). Pass ``delete_after=0``
+        (or negative) to keep the message permanently.
+        """
+        ...
+
     async def delete_message(
         self,
         update: TuicanUpdate,

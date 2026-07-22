@@ -94,8 +94,10 @@ class Application:
 
     async def handle_exception(self, e: Exception, update: TuicanUpdate):
         logging.getLogger(__name__).exception("Unhandled exception in update handler")
-        await self.backend.send_plain_message(
-            update, "An unexpected error occurred. Please try again later."
+        await self.backend.send_notification(
+            update,
+            "An unexpected error occurred. Please try again later.",
+            delete_after=3.0,
         )
 
     async def command_handler(self, update: TuicanUpdate):
@@ -138,7 +140,7 @@ class Application:
                     update, message_id_to_delete
                 )
         except ValidationError as e:
-            await self.backend.send_plain_message(update, str(e))
+            await self.backend.send_notification(update, str(e), delete_after=3.0)
         except Exception as e:
             await self.handle_exception(e, update)
 
