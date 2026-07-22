@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
 from .backend import MessageBackend
-from .backends import PythonTelegramBotBackend
 from .components import Screen
 from .components.screen import StartScreenProtocol
 from .errors import UserNotFoundError, ValidationError
