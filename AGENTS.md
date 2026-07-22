@@ -59,7 +59,12 @@ Components are identified by `callback_data` (falls back to `component_id`). `Sc
 
 ### Input Focus
 
-Only one `MessageHandlingComponent` may be active at a time per screen. `Input.toggle()` / `Input.activate()` call `Screen.set_focus()`, which deactivates the previously focused input via `ComponentRegistry`.
+Only one `MessageHandlingComponent` may be active at a time per screen.
+
+- `Screen.set_focus(component)` deactivates the previous focused input and calls `component.accept_focus()` so the new one **accepts text messages** without clearing its value or firing `on_change`.
+- `Input.activate(clear_value=True)` clears the value (default), marks the input active, and calls `set_focus`. Use `clear_value=False` to keep the existing value.
+- `Input.toggle()` / `activate()` / `deactivate()` **do not** fire `on_change`. `on_change` runs only when a text message is committed in `handle_message`.
+- App handlers must treat `value is None` as “not submitted” (never as a validation error for empty input).
 
 ### Lifecycle
 

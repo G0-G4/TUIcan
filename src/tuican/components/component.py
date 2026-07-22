@@ -131,3 +131,11 @@ class MessageHandlingComponent(Component, ABC):
     @abstractmethod
     async def deactivate(self) -> None:
         raise NotImplementedError
+
+    def accept_focus(self) -> None:
+        """Mark this component as accepting messages without side effects.
+
+        Called by ``Screen.set_focus``. Override to flip internal active state.
+        Must not clear values or fire ``on_change``.
+        """
+

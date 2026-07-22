@@ -87,6 +87,14 @@ class ComponentRegistry:
         return False
 
     async def set_focus(self, focused_component: MessageHandlingComponent | None) -> None:
+        """Set which component receives text messages.
+
+        Deactivates the previous focused component (if any), then marks the new
+        one as accepting messages via ``accept_focus()`` without clearing its
+        value or firing ``on_change``.
+        """
         if self._active_message_component is not None and self._active_message_component is not focused_component:
             await self._active_message_component.deactivate()
         self._active_message_component = focused_component
+        if focused_component is not None:
+            focused_component.accept_focus()

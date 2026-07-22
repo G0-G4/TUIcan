@@ -154,11 +154,13 @@ class TestComponentRegistry:
     async def test_set_focus_deactivates_previous(self, mock_screen):
         msg1 = MockMessageComponent(callback_data="msg1")
         msg2 = MockMessageComponent(callback_data="msg2")
+        msg2.accept_focus = MagicMock()
         registry = ComponentRegistry([msg1, msg2], parent_screen=mock_screen)
         registry._active_message_component = msg1
         await registry.set_focus(msg2)
         msg1.deactivate.assert_awaited_once()
         assert registry.active_message_component is msg2
+        msg2.accept_focus.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_set_focus_same_component_no_deactivate(self, mock_screen):

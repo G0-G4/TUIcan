@@ -37,7 +37,7 @@ def backend():
 class TestScreenFocus:
     @pytest.mark.asyncio
     async def test_set_focus_deactivates_other_inputs(self, backend):
-        """set_focus should deactivate all other active MessageHandlingComponents"""
+        """set_focus should deactivate others and activate the focused input"""
         screen = TwoInputScreen(backend=backend)
 
         await screen.input_b.activate()
@@ -45,8 +45,8 @@ class TestScreenFocus:
 
         await screen.set_focus(screen.input_a)
 
-        assert screen.input_a.active is False  # input_a was not active, stays inactive
-        assert screen.input_b.active is False    # input_b was active but not focused, so it was deactivated
+        assert screen.input_a.active is True  # focused input must accept messages
+        assert screen.input_b.active is False  # previous focus was deactivated
 
     @pytest.mark.asyncio
     async def test_activate_input_deactivates_other_active_input(self, backend):
@@ -94,6 +94,36 @@ class TestScreenFocus:
 
         screen.input_a.deactivate.assert_not_awaited()
         screen.input_b.deactivate.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_set_focus_enables_message_handling(self, backend):
+        """After set_focus, typed text must be accepted by the focused input"""
+        from tuican.update import TuicanUpdate
+
+        screen = TwoInputScreen(backend=backend)
+        await screen.set_focus(screen.input_a)
+        assert screen.input_a.active is True
+
+        update = TuicanUpdate.from_message(
+            user_id=1, chat_id=1, message_text="hello", message_id=1
+        )
+        screen._current_update = update
+        handled = await screen.message_dispatcher(update)
+
+        assert handled is True
+        assert screen.input_a.value == "hello"
+        assert screen.input_a.active is False
+
+    @pytest.mark.asyncio
+    async def test_set_focus_preserves_value(self, backend):
+        """set_focus must not clear the input value (unlike activate default)"""
+        screen = TwoInputScreen(backend=backend)
+        screen.input_a.value = "existing"
+
+        await screen.set_focus(screen.input_a)
+
+        assert screen.input_a.active is True
+        assert screen.input_a.value == "existing"
 
 
 class TestScreenLifecycleMethods:

@@ -18,7 +18,8 @@ class Input[T](MessageHandlingComponent):
         Initialize the Input component.
 
         Args:
-            on_change: Callback function that will be called with the input value
+            on_change: Called when a text message is committed (via handle_message),
+                not when the input is merely activated or deactivated.
             active_prompt: Prefix shown when input is active and accepting messages
         """
         super().__init__(component_id, callback_data, on_change)
@@ -70,28 +71,39 @@ class Input[T](MessageHandlingComponent):
                 text = self._text
         return KeyboardButton(text=text, callback_data=self.callback_data)
 
-    async def activate(self) -> None:
-        """Activate the input to start accepting messages"""
+    def accept_focus(self) -> None:
+        """Enable message handling without clearing value or firing on_change."""
         self._active = True
-        self._value = None
+
+    async def activate(self, clear_value: bool = True) -> None:
+        """Activate the input to start accepting messages.
+
+        Args:
+            clear_value: If True (default), reset the current value so the user
+                starts typing from scratch. Set False to keep the existing value
+                (e.g. when programmatically focusing an edit field).
+        """
+        if clear_value:
+            self._value = None
+        self._active = True
         if self.parent_screen is not None:
+            # Registry focus also calls accept_focus and deactivates peers
             await self.parent_screen.set_focus(self)
-        await self.call_on_change()
 
     async def deactivate(self) -> None:
         """Deactivate the input to stop accepting messages"""
         self._active = False
         if self.parent_screen is not None:
             self.parent_screen.clear_active_message_component(self)
-        await self.call_on_change()
 
     async def toggle(self) -> None:
-        self._active = not self.active
-        if self._active and self.parent_screen is not None:
-            await self.parent_screen.set_focus(self)
-        elif not self._active and self.parent_screen is not None:
-            self.parent_screen.clear_active_message_component(self)
-        await self.call_on_change()
+        if self._active:
+            await self.deactivate()
+        else:
+            # Focus without clearing value (user may re-activate an edit field)
+            self._active = True
+            if self.parent_screen is not None:
+                await self.parent_screen.set_focus(self)
 
     def validate_input(self, text: str) -> T:
         return self._validation_function(text)

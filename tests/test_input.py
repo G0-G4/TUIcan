@@ -253,6 +253,91 @@ class TestInput:
         await inp.activate()
         assert inp.active is True
 
+    @pytest.mark.asyncio
+    async def test_activate_does_not_fire_on_change(self, mock_screen):
+        """activate() must not call on_change — only committed values do"""
+        handler = AsyncMock()
+        inp = Input[str](validation_function=lambda x: x, on_change=handler)
+        inp.parent_screen = mock_screen
+
+        await inp.activate()
+
+        handler.assert_not_awaited()
+        assert inp.active is True
+        assert inp.value is None
+
+    @pytest.mark.asyncio
+    async def test_toggle_does_not_fire_on_change(self, mock_screen):
+        """toggle() must not call on_change"""
+        handler = AsyncMock()
+        inp = Input[str](validation_function=lambda x: x, on_change=handler)
+        inp.parent_screen = mock_screen
+
+        await inp.toggle()
+        handler.assert_not_awaited()
+        assert inp.active is True
+
+        await inp.toggle()
+        handler.assert_not_awaited()
+        assert inp.active is False
+
+    @pytest.mark.asyncio
+    async def test_deactivate_does_not_fire_on_change(self, mock_screen):
+        """deactivate() must not call on_change"""
+        handler = AsyncMock()
+        inp = Input[str](validation_function=lambda x: x, on_change=handler)
+        inp._active = True
+        inp.parent_screen = mock_screen
+
+        await inp.deactivate()
+
+        handler.assert_not_awaited()
+        assert inp.active is False
+
+    @pytest.mark.asyncio
+    async def test_activate_clears_value_by_default(self, mock_screen):
+        """activate() clears existing value so the user starts fresh"""
+        inp = Input[str](validation_function=lambda x: x, value="old")
+        inp.parent_screen = mock_screen
+
+        await inp.activate()
+
+        assert inp.value is None
+        assert inp.active is True
+
+    @pytest.mark.asyncio
+    async def test_activate_clear_value_false_keeps_value(self, mock_screen):
+        """activate(clear_value=False) keeps the existing value"""
+        inp = Input[str](validation_function=lambda x: x, value="keep")
+        inp.parent_screen = mock_screen
+
+        await inp.activate(clear_value=False)
+
+        assert inp.value == "keep"
+        assert inp.active is True
+
+    @pytest.mark.asyncio
+    async def test_toggle_on_does_not_clear_value(self, mock_screen):
+        """toggle() turning on must not clear the current value"""
+        inp = Input[str](validation_function=lambda x: x, value="kept")
+        inp.parent_screen = mock_screen
+
+        await inp.toggle()
+
+        assert inp.active is True
+        assert inp.value == "kept"
+
+    @pytest.mark.asyncio
+    async def test_accept_focus_enables_active_without_clear(self, mock_screen):
+        """accept_focus enables message handling and preserves value"""
+        inp = Input[str](validation_function=lambda x: x, value="edit-me")
+        inp.parent_screen = mock_screen
+
+        inp.accept_focus()
+
+        assert inp.active is True
+        assert inp.value == "edit-me"
+
     def test_init_default_callback_data_int_type(self):
         """Input[int] without callback_data should fallback to component_id"""
         inp = Input[int](validation_function=int)
